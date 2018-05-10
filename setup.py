@@ -13,6 +13,6 @@ setup(
     description='',
     install_requires=[
         'requests',
-        'GelReportModels==6.1.0'
+        'GelReportModels==6.1.1'
     ]
 )

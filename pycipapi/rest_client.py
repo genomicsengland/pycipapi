@@ -8,6 +8,11 @@ from requests.exceptions import HTTPError
 import pycipapi.backoff_retrier as backoff_retrier
 
 
+class NotFound(HTTPError):
+
+    pass
+
+
 class RestClient(object):
 
     session = requests.Session()
@@ -96,6 +101,9 @@ class RestClient(object):
                 self.renewed_token = True
                 # RequestException will trigger a retry and with the renewed token it may work
                 raise requests.exceptions.RequestException(response=response)
+            elif response.status_code == 404:
+                logging.warning("Not found resource")
+                raise NotFound(response.text)
             # ValueError will not
             raise HTTPError("{}:{}".format(response.status_code, response.text), response=response)
         else:
