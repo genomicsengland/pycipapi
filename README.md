@@ -32,6 +32,8 @@ ped = case.get_pedigree()
 eq = case.get_exit_questionnaire()
 ```
 
+Interpreted genomes, clinical reports and exit questionnaires fetched correspond to the latest version (ie: highest).
+
 Alternatively iterate through all interpretation requests as follows.
 
 ```
