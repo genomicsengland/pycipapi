@@ -4,12 +4,15 @@ from unittest import TestCase
 
 from protocols.migration.base_migration import MigrationError
 from protocols.reports_5_0_0 import Program, ClinicalReportCancer
-from protocols.cva_1_0_0 import ReportEventType, Assembly, Variant
+from protocols.cva_1_0_0 import ReportEventType, Assembly, Variant, TieredVariantInjectRD, TieredVariantInjectCancer, \
+    CandidateVariantInjectRD, CandidateVariantInjectCancer, ReportedVariantInjectRD, ReportedVariantInjectCancer, \
+    ExitQuestionnaireInjectRD, ExitQuestionnaireInjectCancer
 from protocols.reports_5_0_0 import InterpretedGenomeRD, ClinicalReportRD, CancerInterpretationRequest, \
     CancerInterpretedGenome, RareDiseaseExitQuestionnaire, CancerExitQuestionnaire, InterpretationRequestRD
 from protocols.participant_1_1_0 import Pedigree
 
 from pycipapi.cipapi_client import CipApiClient, CipApiCase
+from pycipapi.cva_helper import CvaHelper
 
 
 class TestPyCipApi(TestCase):
@@ -29,51 +32,87 @@ class TestPyCipApi(TestCase):
 
     def test_get_rare_disease_case(self):
 
-        case_id = "29"
-        case_version = 2
+        case_id = "23"
+        case_version = 4
         case = self.cipapi.get_case(case_id, case_version)
 
         # compulsory fields
         ir = case.get_interpretation_request()
-        self.assertTrue(InterpretationRequestRD.validate(ir.toJsonDict()))
+        validation = InterpretationRequestRD.validate(ir.toJsonDict(), verbose=True)
+        self.assertTrue(validation.result, validation.messages)
         tig = case.get_tiering_interpreted_genome()
-        self.assertTrue(InterpretedGenomeRD.validate(tig.toJsonDict()))
+        validation = InterpretedGenomeRD.validate(tig.toJsonDict(), verbose=True)
+        self.assertTrue(validation.result, validation.messages)
         ped = case.get_pedigree()
-        self.assertTrue(Pedigree.validate(ped.toJsonDict()))
+        validation = Pedigree.validate(ped.toJsonDict(), verbose=True)
+        self.assertTrue(validation.result, validation.messages)
+
+        # injection objects
+        tv_inject = CvaHelper.generate_tiered_variant_inject(case)
+        validation = TieredVariantInjectRD.validate(tv_inject.toJsonDict(), verbose=True)
+        self.assertTrue(validation.result, validation.messages)
 
         # optional data
         ig = case.get_interpreted_genome()
+        has_ig = False
         if ig:
             self.assertTrue(InterpretedGenomeRD.validate(ig.toJsonDict()))
+            cv_inject = CvaHelper.generate_candidate_variant_inject(case)
+            validation = CandidateVariantInjectRD.validate(cv_inject.toJsonDict(), verbose=True)
+            self.assertTrue(validation.result, validation.messages)
+            has_ig = True
+        self.assertTrue(has_ig, "No interpreted genome")
+
         cr = case.get_clinical_report()
+        has_cr = False
         if cr:
             self.assertTrue(ClinicalReportRD.validate(cr.toJsonDict()))
-        eq = case.get_exit_questionnaire_rd()
+            rv_inject = CvaHelper.generate_reported_variant_inject(case)
+            validation = ReportedVariantInjectRD.validate(rv_inject.toJsonDict(), verbose=True)
+            self.assertTrue(validation.result, validation.messages)
+            has_cr = True
+        self.assertTrue(has_cr, "No clinical report")
+
+        eq = case.get_exit_questionnaire()
+        has_eq = False
         if eq:
-            self.assertTrue(RareDiseaseExitQuestionnaire.validate(cr.toJsonDict()))
+            validation = RareDiseaseExitQuestionnaire.validate(eq.toJsonDict(), verbose=True)
+            self.assertTrue(validation.result, validation.messages)
+            eq_inject = CvaHelper.generate_exit_questionnaire_inject(case)
+            validation = ExitQuestionnaireInjectRD.validate(eq_inject.toJsonDict(), verbose=True)
+            self.assertTrue(validation.result, validation.messages)
+            has_eq = True
+        self.assertTrue(has_eq, "No exit questionnaire")
 
     def test_get_cancer_case(self):
 
-        case_id = "39"
-        case_version = 1
+        case_id = "124"
+        case_version = 3
         case = self.cipapi.get_case(case_id, case_version)
 
         # compulsory fields
         ir = case.get_interpretation_request()
-        self.assertTrue(CancerInterpretationRequest.validate(ir.toJsonDict()))
+        validation = CancerInterpretationRequest.validate(ir.toJsonDict(), verbose=True)
+        self.assertTrue(validation.result, validation.messages)
         tig = case.get_tiering_interpreted_genome()
-        self.assertTrue(CancerInterpretedGenome.validate(tig.toJsonDict()))
+        validation = CancerInterpretedGenome.validate(tig.toJsonDict(), verbose=True)
+        self.assertTrue(validation.result, validation.messages)
 
-        # optional data
-        ig = case.get_interpreted_genome()
-        if ig:
-            self.assertTrue(CancerInterpretedGenome.validate(ig.toJsonDict()))
         cr = case.get_clinical_report()
+        has_cr = False
         if cr:
-            self.assertTrue(ClinicalReportCancer.validate(cr.toJsonDict()))
-        eq = case.get_exit_questionnaire_rd()
+            validation = ClinicalReportCancer.validate(cr.toJsonDict(), verbose=True)
+            self.assertTrue(validation.result, validation.messages)
+            has_cr = True
+        self.assertTrue(has_cr, "No clinical report")
+
+        eq = case.get_exit_questionnaire()
+        has_eq = False
         if eq:
-            self.assertTrue(RareDiseaseExitQuestionnaire.validate(cr.toJsonDict()))
+            validation = CancerExitQuestionnaire.validate(eq.toJsonDict(), verbose=True)
+            self.assertTrue(validation.result, validation.messages)
+            has_eq = True
+        self.assertTrue(has_eq, "No exit questionnaire")
 
     def test_all(self):
 
@@ -97,7 +136,10 @@ class TestPyCipApi(TestCase):
             try:
                 ig = case.get_interpreted_genome()
                 if ig:
-                    self.assertTrue(CancerInterpretedGenome.validate(ig.toJsonDict(), verbose=True))
+                    if case.is_rare_disease():
+                        self.assertTrue(CancerInterpretedGenome.validate(ig.toJsonDict(), verbose=True))
+                    elif case.is_cancer():
+                        self.assertTrue(InterpretedGenomeRD.validate(ig.toJsonDict(), verbose=True))
                     ig_tested[case.program] = True
             except MigrationError, ex:
                 logging.warning("Migration error for interpreted genome for case with id {} and version {}: {}".format(
@@ -106,16 +148,22 @@ class TestPyCipApi(TestCase):
             try:
                 cr = case.get_clinical_report()
                 if cr:
-                    self.assertTrue(ClinicalReportCancer.validate(cr.toJsonDict(), verbose=True))
+                    if case.is_rare_disease():
+                        self.assertTrue(ClinicalReportRD.validate(cr.toJsonDict(), verbose=True))
+                    elif case.is_cancer():
+                        self.assertTrue(ClinicalReportCancer.validate(cr.toJsonDict(), verbose=True))
                     cr_tested[case.program] = True
             except MigrationError, ex:
                 logging.warning("Migration error for clinical report for case with id {} and version {}: {}".format(
                     case.case_id, case.case_version, ex.message))
 
             try:
-                eq = case.get_exit_questionnaire_rd()
+                eq = case.get_exit_questionnaire()
                 if eq:
-                    self.assertTrue(RareDiseaseExitQuestionnaire.validate(cr.toJsonDict(), verbose=True))
+                    if case.is_rare_disease():
+                        self.assertTrue(CancerExitQuestionnaire.validate(cr.toJsonDict(), verbose=True))
+                    elif case.is_cancer():
+                        self.assertTrue(RareDiseaseExitQuestionnaire.validate(cr.toJsonDict(), verbose=True))
                     eq_tested[case.program] = True
             except MigrationError, ex:
                 logging.warning("Migration error for exit questionnaire for case with id {} and version {}: {}".format(
@@ -124,6 +172,5 @@ class TestPyCipApi(TestCase):
         self.assertTrue(ig_tested[Program.rare_disease], "No rare disease case with interpreted genomes")
         self.assertTrue(cr_tested[Program.rare_disease], "No rare disease case with clinical reports")
         self.assertTrue(eq_tested[Program.rare_disease], "No rare disease case with exit questionnaires")
-        self.assertTrue(ig_tested[Program.cancer], "No cancer case with interpreted genomes")
         self.assertTrue(cr_tested[Program.cancer], "No cancer case with clinical reports")
         self.assertTrue(eq_tested[Program.cancer], "No cancer case with exit questionnaires")

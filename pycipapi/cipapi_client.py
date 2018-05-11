@@ -2,7 +2,7 @@ import logging
 
 from protocols.migration.base_migration import MigrationError
 
-from pycipapi.rest_client import RestClient, NotFound
+from pycipapi.rest_client import RestClient, NotFound, BlockedCase
 from protocols.participant_1_0_3 import Pedigree, PedigreeMember
 from protocols.reports_5_0_0 import Assembly, InterpretedGenomeRD, ClinicalReportRD, Program, \
     CancerInterpretationRequest, CancerInterpretedGenome, RareDiseaseExitQuestionnaire, CancerExitQuestionnaire, \
@@ -41,13 +41,14 @@ class CipApiClient(RestClient):
         }).get('token')
         return "JWT {}".format(token)
 
-    def get_cases(self):
+    def get_cases(self, params={}):
         page = 1
         while True:
             try:
                 results = self.get(
-                    endpoint=self.IR_LIST_ENDPOINT.format(url_base=self.ENDPOINT_BASE, page=page))["results"]
-            except ValueError:
+                    endpoint=self.IR_LIST_ENDPOINT.format(url_base=self.ENDPOINT_BASE, page=page),
+                    url_params=params)["results"]
+            except NotFound:
                 logging.info("Finished iterating through report events in the CIPAPI")
                 break
             for result in results:
@@ -83,6 +84,9 @@ class CipApiClient(RestClient):
         except NotFound:
             logging.warning("Not found questionnaire with id {id} and version {version}".format(
                 id=case.case_id, version=case.case_version))
+        except BlockedCase:
+            logging.warning("Blocked case with id {id} and version {version}".format(
+                id=case.case_id, version=case.case_version))
         return case
 
 
@@ -95,14 +99,28 @@ class CipApiCase(object):
 
     def __init__(self, raw_case):
         self.raw_case = raw_case
+
+        # reads some fields from the raw case
         self.program = self.map_sampletype2program[self.raw_case['sample_type']]
-        self.assembly = self.raw_case['assembly']
+        self.assembly = self.raw_case.get('assembly')
+        if self.is_rare_disease():
+            self.group_id = self.raw_case.get('family_id')
+        elif self.is_cancer():
+            self.group_id = self.raw_case.get('cancer_participant')
+        self.cohort_id = self.raw_case.get('cohort_id')
         self.raw_interpretation_request, self.case_id, self.case_version = self._get_raw_interpretation_request()
+
+        # creates an interpretation request
         self.interpretation_request = self.get_interpretation_request()
+
+        # creates the interpreted genome with the tiering results
         self.tiering_interpreted_genome = self.get_tiering_interpreted_genome()
-        self.raw_interpreted_genome, self.interpreted_genome_version = self._get_latest_raw_interpreted_genome()
+
+        # loads other raw data
+        self.raw_interpreted_genome, self.interpreted_genome_version, self.interpretation_service_version = \
+            self._get_latest_raw_interpreted_genome()
         self.raw_clinical_report, self.clinical_report_version = self._get_latest_raw_clinical_report()
-        if self.program == Program.rare_disease:
+        if self.is_rare_disease():
             self.raw_pedigree = self._get_raw_pedigree()
         self.raw_questionnaire = None
 
@@ -113,7 +131,7 @@ class CipApiCase(object):
         """
         try:
             data = self.raw_case['interpretation_request_data']['json_request']
-            identifier = self.raw_case['interpretation_request_id']
+            identifier = str(self.raw_case['interpretation_request_id'])
             version = int(self.raw_case['version'])
         except ValueError, ex:
             logging.error("Something is very wrong with this case formatting: {}".format(ex.message))
@@ -130,10 +148,11 @@ class CipApiCase(object):
         latest_ig = next((ig for ig in sorted_ig_list), None)
         if latest_ig:
             data = latest_ig.get('interpreted_genome_data', None)
-            version = latest_ig.get('interpreted_genome_version', None)
-            return data, int(version) if version else version
+            version = latest_ig.get('cip_version', None)
+            cip_version = latest_ig.get('cip_version', None)
+            return data, int(version) if version else version, int(cip_version) if cip_version else cip_version
         else:
-            return None, None
+            return None, None, None
 
     def _get_latest_raw_clinical_report(self):
         """
@@ -162,10 +181,10 @@ class CipApiCase(object):
         :return:
         :rtype: InterpretationRequestRD or CancerInterpretationRequest
         """
-        if self.program == Program.rare_disease:
+        if self.is_rare_disease():
             interpretation_request = MigrationHelpers.migrate_interpretation_request_rd_to_latest(
                 json_dict=self.raw_interpretation_request, assembly=self.assembly)
-        elif self.program == Program.cancer:
+        elif self.is_cancer():
             interpretation_request = MigrationHelpers.migrate_interpretation_request_cancer_to_latest(
                 json_dict=self.raw_interpretation_request, assembly=self.assembly)
         else:
@@ -177,10 +196,10 @@ class CipApiCase(object):
         :return:
         :rtype: InterpretedGenomeRD or CancerInterpretedGenome
         """
-        if self.program == Program.rare_disease:
+        if self.is_rare_disease():
             interpreted_genome = MigrationHelpers.migrate_interpretation_request_rd_to_interpreted_genome_latest(
                 json_dict=self.raw_interpretation_request, assembly=self.assembly)
-        elif self.program == Program.cancer:
+        elif self.is_cancer():
             interpreted_genome = MigrationHelpers.migrate_interpretation_request_cancer_to_interpreted_genome_latest(
                 json_dict=self.raw_interpretation_request, assembly=self.assembly, interpretation_service='tiering',
                 reference_database_versions={}, software_versions={}, report_url=None, comments=[])
@@ -196,11 +215,11 @@ class CipApiCase(object):
         """
         interpreted_genome = None
         if self.raw_interpreted_genome:
-            if self.program == Program.rare_disease:
+            if self.is_rare_disease():
                 interpreted_genome = MigrationHelpers.migrate_interpreted_genome_rd_to_latest(
                     json_dict=self.raw_interpreted_genome, assembly=self.assembly,
                     interpretation_request_version=self.case_version)
-            elif self.program == Program.cancer:
+            elif self.is_cancer():
                 interpreted_genome = MigrationHelpers.migrate_interpreted_genome_cancer_to_latest(
                     json_dict=self.raw_interpreted_genome, assembly=self.assembly)
             else:
@@ -215,10 +234,10 @@ class CipApiCase(object):
         """
         clinical_report = None
         if self.raw_clinical_report:
-            if self.program == Program.rare_disease:
+            if self.is_rare_disease():
                 clinical_report = MigrationHelpers.migrate_clinical_report_rd_to_latest(
                     json_dict=self.raw_clinical_report, assembly=self.assembly)
-            elif self.program == Program.cancer:
+            elif self.is_cancer():
                 participant_id = self.interpretation_request.cancerParticipant.individualId
                 sample_id = self.interpretation_request.cancerParticipant.tumourSamples[0].sampleId
                 clinical_report = MigrationHelpers.migrate_clinical_report_cancer_to_latest(
@@ -234,29 +253,32 @@ class CipApiCase(object):
         :return:
         :rtype: Pedigree
         """
-        if self.program == Program.rare_disease:
+        if self.is_rare_disease():
             return MigrationHelpers.migrate_pedigree_to_latest(self.raw_pedigree)
         else:
             raise ValueError("There are no pedigrees for cancer cases")
 
-    def get_exit_questionnaire_rd(self):
+    def get_exit_questionnaire(self):
         """
-
         :return:
-        :rtype: RareDiseaseExitQuestionnaire
+        :rtype: RareDiseaseExitQuestionnaire or CancerExitQuestionnaire
         """
+        exit_questionnaire = None
         if self.raw_questionnaire:
-            return RareDiseaseExitQuestionnaire.fromJsonDict(jsonDict=self.raw_questionnaire)
-        else:
-            return None
+            if self.is_rare_disease():
+                exit_questionnaire = MigrationHelpers.migrate_exit_questionnaire_rd_to_latest(
+                    json_dict=self.raw_questionnaire)
+            elif self.is_cancer():
+                exit_questionnaire = CancerExitQuestionnaire.fromJsonDict(jsonDict=self.raw_questionnaire)
+            else:
+                raise ValueError("Non supported program")
+        return exit_questionnaire
 
-    def get_exit_questionnaire_cancer(self):
-        """
+    def is_rare_disease(self):
+        return self.program == Program.rare_disease
 
-        :return:
-        :rtype: RareDiseaseExitQuestionnaire
-        """
-        return CancerExitQuestionnaire.fromJsonDict(jsonDict=self.raw_questionnaire)
+    def is_cancer(self):
+        return self.program == Program.cancer
 
     @staticmethod
     def get_proband(pedigree):

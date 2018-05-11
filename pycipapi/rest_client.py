@@ -13,6 +13,11 @@ class NotFound(HTTPError):
     pass
 
 
+class BlockedCase(HTTPError):
+
+    pass
+
+
 class RestClient(object):
 
     session = requests.Session()
@@ -104,6 +109,9 @@ class RestClient(object):
             elif response.status_code == 404:
                 logging.warning("Not found resource")
                 raise NotFound(response.text)
+            elif response.status_code == 406:
+                logging.warning("Blocked case")
+                raise BlockedCase(response.text)
             # ValueError will not
             raise HTTPError("{}:{}".format(response.status_code, response.text), response=response)
         else:
