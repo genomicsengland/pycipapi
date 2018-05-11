@@ -111,6 +111,9 @@ class TestPyCipApi(TestCase):
         if eq:
             validation = CancerExitQuestionnaire.validate(eq.toJsonDict(), verbose=True)
             self.assertTrue(validation.result, validation.messages)
+            eq_inject = CvaHelper.generate_exit_questionnaire_inject(case)
+            validation = ExitQuestionnaireInjectCancer.validate(eq_inject.toJsonDict(), verbose=True)
+            self.assertTrue(validation.result, validation.messages)
             has_eq = True
         self.assertTrue(has_eq, "No exit questionnaire")
 
