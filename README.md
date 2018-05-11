@@ -1,4 +1,5 @@
 
+## Initialise the client
 
 Create a client as follows.
 ```
