@@ -207,14 +207,16 @@ class CipApiCase(object):
             raise ValueError("Non supported program")
         return interpreted_genome
 
+    def has_interpreted_genome(self):
+        return self.raw_interpreted_genome is not None
+
     def get_interpreted_genome(self):
         """
-
         :return:
         :rtype: InterpretedGenomeRD or CancerInterpretedGenome
         """
         interpreted_genome = None
-        if self.raw_interpreted_genome:
+        if self.has_interpreted_genome():
             if self.is_rare_disease():
                 interpreted_genome = MigrationHelpers.migrate_interpreted_genome_rd_to_latest(
                     json_dict=self.raw_interpreted_genome, assembly=self.assembly,
@@ -226,14 +228,16 @@ class CipApiCase(object):
                 raise ValueError("Non supported program")
         return interpreted_genome
 
+    def has_clinical_report(self):
+        return self.raw_clinical_report is not None
+
     def get_clinical_report(self):
         """
-
         :return:
         :rtype: ClinicalReportRD or ClinicalReportCancer
         """
         clinical_report = None
-        if self.raw_clinical_report:
+        if self.has_clinical_report():
             if self.is_rare_disease():
                 clinical_report = MigrationHelpers.migrate_clinical_report_rd_to_latest(
                     json_dict=self.raw_clinical_report, assembly=self.assembly)
@@ -258,13 +262,16 @@ class CipApiCase(object):
         else:
             raise ValueError("There are no pedigrees for cancer cases")
 
+    def has_exit_questionnaire(self):
+        return self.raw_questionnaire is not None
+
     def get_exit_questionnaire(self):
         """
         :return:
         :rtype: RareDiseaseExitQuestionnaire or CancerExitQuestionnaire
         """
         exit_questionnaire = None
-        if self.raw_questionnaire:
+        if self.has_exit_questionnaire():
             if self.is_rare_disease():
                 exit_questionnaire = MigrationHelpers.migrate_exit_questionnaire_rd_to_latest(
                     json_dict=self.raw_questionnaire)
