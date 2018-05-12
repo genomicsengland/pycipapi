@@ -126,6 +126,8 @@ class CipApiCase(object):
         self.raw_clinical_report, self.clinical_report_version = self._get_latest_raw_clinical_report()
         if self.is_rare_disease():
             self.raw_pedigree = self._get_raw_pedigree()
+        if self.is_cancer():
+            self.raw_cancer_participant = self._get_raw_cancer_participant()
         self.raw_questionnaire = None
 
     def _get_raw_interpretation_request(self):
@@ -177,6 +179,10 @@ class CipApiCase(object):
         raw_pedigree = self.raw_case['interpretation_request_data']['json_request']['pedigree']
         return raw_pedigree
 
+    def _get_raw_cancer_participant(self):
+        raw_cancer_participant = self.raw_case['interpretation_request_data']['json_request']['cancerParticipant']
+        return raw_cancer_participant
+
     def set_exit_questionnaire(self, questionnaire):
         self.raw_questionnaire = questionnaire['exit_questionnaire_data']
 
@@ -226,8 +232,13 @@ class CipApiCase(object):
                     json_dict=self.raw_interpreted_genome, assembly=self.assembly,
                     interpretation_request_version=self.case_version)
             elif self.is_cancer():
+                cancer_participant = self.get_cancer_participant()
                 interpreted_genome = MigrationHelpers.migrate_interpreted_genome_cancer_to_latest(
-                    json_dict=self.raw_interpreted_genome, assembly=self.assembly)
+                    json_dict=self.raw_interpreted_genome, assembly=self.assembly,
+                    participant_id=cancer_participant.individualId,
+                    sample_id=cancer_participant.tumourSamples[0].sampleId,
+                    interpretation_request_version=self.case_version,
+                    interpretation_service="unknown")
             else:
                 raise ValueError("Non supported program")
         return interpreted_genome
@@ -257,14 +268,21 @@ class CipApiCase(object):
 
     def get_pedigree(self):
         """
-
-        :return:
         :rtype: Pedigree
         """
         if self.is_rare_disease():
             return MigrationHelpers.migrate_pedigree_to_latest(self.raw_pedigree)
         else:
             raise ValueError("There are no pedigrees for cancer cases")
+
+    def get_cancer_participant(self):
+        """
+        :rtype: CancerParticipant
+        """
+        if self.is_cancer():
+            return MigrationHelpers.migrate_cancer_participant_to_latest(self.raw_cancer_participant)
+        else:
+            raise ValueError("There are no cancer participants for rare disease cases")
 
     def has_exit_questionnaire(self):
         return self.raw_questionnaire is not None
