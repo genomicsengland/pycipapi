@@ -41,7 +41,7 @@ class CipApiClient(RestClient):
         }).get('token')
         return "JWT {}".format(token)
 
-    def get_cases(self, params={}):
+    def get_cases(self, assembly=None, sample_type=None, params={}):
         page = 1
         while True:
             try:
@@ -54,6 +54,10 @@ class CipApiClient(RestClient):
             for result in results:
                 last_status = result["last_status"]
                 if last_status in ["blocked", "waiting_payload"]:
+                    continue
+                if assembly and result['assembly'] != assembly:
+                    continue
+                if sample_type and result['sample_type'] != sample_type:
                     continue
                 case_id, case_version = result["interpretation_request_id"].split("-")
                 try:
@@ -286,6 +290,12 @@ class CipApiCase(object):
 
     def is_cancer(self):
         return self.program == Program.cancer
+
+    def is_assembly_38(self):
+        return self.assembly == Assembly.GRCh38
+
+    def is_assembly_37(self):
+        return self.assembly == Assembly.GRCh37
 
     @staticmethod
     def get_proband(pedigree):

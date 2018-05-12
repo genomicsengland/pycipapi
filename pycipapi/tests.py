@@ -177,3 +177,18 @@ class TestPyCipApi(TestCase):
         self.assertTrue(eq_tested[Program.rare_disease], "No rare disease case with exit questionnaires")
         self.assertTrue(cr_tested[Program.cancer], "No cancer case with clinical reports")
         self.assertTrue(eq_tested[Program.cancer], "No cancer case with exit questionnaires")
+
+    def test_count_by_panel(self):
+
+        panels = {}
+        for case in self.cipapi.get_cases(assembly=Assembly.GRCh38, sample_type='raredisease'):
+            if case.is_assembly_38() and case.is_rare_disease():
+                ir = case.get_interpretation_request()
+                for panel in ir.pedigree.analysisPanels:
+                    panel_name = panel.panelName
+                    if panel_name not in panels:
+                        panels[panel_name] = set()
+                    panels[panel_name].add(ir.pedigree.familyId)
+        for panel, families in panels.iteritems():
+            print "Panel '{}' has {} cases".format(panel, len(list(families)))
+
