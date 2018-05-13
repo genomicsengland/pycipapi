@@ -32,7 +32,8 @@ def wrapper(func, retries):
                 results = func(*args, **kwargs)
                 success = True
             except (requests.exceptions.ConnectionError, requests.exceptions.Timeout,
-                    requests.exceptions.TooManyRedirects, urllib2.URLError), ex:
+                    requests.exceptions.TooManyRedirects, urllib2.URLError,
+                    requests.exceptions.RequestException), ex:
                 # do we want here any other requests.exception??
                 logging.error(str(ex))
                 # retries a fixed number of times
