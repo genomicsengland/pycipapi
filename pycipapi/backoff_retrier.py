@@ -5,6 +5,11 @@ import time
 import random
 
 
+class RenewedToken(requests.exceptions.HTTPError):
+
+    pass
+
+
 def wrapper(func, retries):
     """
     This wrapper implements a truncated binary exponential backoff algorithm between retries.
@@ -33,7 +38,7 @@ def wrapper(func, retries):
                 success = True
             except (requests.exceptions.ConnectionError, requests.exceptions.Timeout,
                     requests.exceptions.TooManyRedirects, urllib2.URLError,
-                    requests.exceptions.RequestException), ex:
+                    RenewedToken), ex:
                 # do we want here any other requests.exception??
                 logging.error(str(ex))
                 # retries a fixed number of times

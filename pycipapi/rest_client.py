@@ -104,8 +104,8 @@ class RestClient(object):
                 # renews the token if unauthorised
                 self.set_authenticated_header(renew_token=True)
                 self.renewed_token = True
-                # RequestException will trigger a retry and with the renewed token it may work
-                raise requests.exceptions.RequestException(response=response)
+                # will trigger a retry and with the renewed token it may work
+                raise backoff_retrier.RenewedToken(response=response)
             elif response.status_code == 404:
                 logging.warning("Not found resource")
                 raise NotFound(response.text)
