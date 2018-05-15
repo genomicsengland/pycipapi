@@ -275,6 +275,21 @@ class CipApiCase(object):
         else:
             raise ValueError("There are no pedigrees for cancer cases")
 
+    @staticmethod
+    def get_proband(pedigree):
+        """
+
+        :param pedigree:
+        :type pedigree: Pedigree
+        :rtype: PedigreeMember
+        :return:
+        """
+        proband = None
+        for participant in pedigree.members:
+            if participant.isProband:
+                proband = participant
+        return proband
+
     def get_cancer_participant(self):
         """
         :rtype: CancerParticipant
