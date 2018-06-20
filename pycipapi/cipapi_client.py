@@ -228,12 +228,12 @@ class CipApiCase(object):
         interpreted_genome = None
         if self.has_interpreted_genome():
             if self.is_rare_disease():
-                interpreted_genome = MigrationHelpers.migrate_interpreted_genome_rd_to_latest(
+                interpreted_genome = MigrationHelpers.migrate_interpretation_request_rd_to_interpreted_genome_latest(
                     json_dict=self.raw_interpreted_genome, assembly=self.assembly,
                     interpretation_request_version=self.case_version)
             elif self.is_cancer():
                 cancer_participant = self.get_cancer_participant()
-                interpreted_genome = MigrationHelpers.migrate_interpreted_genome_cancer_to_latest(
+                interpreted_genome = MigrationHelpers.migrate_interpretation_request_cancer_to_interpreted_genome_latest(
                     json_dict=self.raw_interpreted_genome, assembly=self.assembly,
                     participant_id=cancer_participant.individualId,
                     sample_id=cancer_participant.tumourSamples[0].sampleId,
