@@ -17,11 +17,6 @@ class CipApiClient(RestClient):
     IR_ENDPOINT = "{url_base}/interpretation-request/{ir_id}/{ir_v}"
     IR_LIST_ENDPOINT = "{url_base}/interpretation-request?page={page}&page_size=100"
     EQ_ENDPOINT = "{url_base}/exit-questionnaire/{ir_id}/{ir_v}/{cr_v}"
-    MEMBER_ENDPOINT = "{url_base}/interpretation-request?members={member}"
-    FAMILY_ENDPOINT = "{url_base}/interpretation-request?family_id={family}"
-    COHORT_ENDPOINT = "{url_base}/interpretation-request?cohort_id={cohort}"
-    CIP_ENDPOINT = "{url_base}/interpretation-request?cip={cip}"
-    WORKSPACE_ENDPOINT = "{url_base}/interpretation-request?workspace={workspace}"
 
     def __init__(self, url_base, token=None, user=None, password=None):
         """
@@ -46,8 +41,62 @@ class CipApiClient(RestClient):
         }).get('token')
         return "JWT {}".format(token)
 
+    def get_case_list(self, params={}, page=1):
+        """
+        gets the un-cast contents of the interpretation request list endpoint
+        do not perform migrations
+
+        does not check and exclude on the basis of last_status, unlike get_cases
+        :return:
+        """
+        while True:
+            try:
+                results = self.get(
+                    endpoint=self.IR_LIST_ENDPOINT.format(url_base=self.ENDPOINT_BASE, page=page),
+                    url_params=params)["results"]
+            except NotFound:
+                logging.info("Finished iterating through report events in the CIPAPI")
+                break
+
+            for case in results:
+                yield case
+
+            page += 1
+
+    def get_case_from_case_list(self, case_list_entity):
+        """
+        use the raw case list entity to cast into a case and return
+        currently returns a case or False
+        :return:
+        """
+        # try:
+        case_id, case_version = case_list_entity["interpretation_request_id"].split("-")
+        try:
+            case = self.get_case(case_id, case_version)
+            return case
+        except MigrationError, ex:
+            logging.warning("Case with id {} and version {} failed migration".format(case_id, case_version))
+            return False
+        except TypeError, ex:
+            logging.warning("Case with id {} and version {} failed parsing".format(case_id, case_version))
+            return False
+        except IndexError, ex:
+            logging.warning("Case with id {} and version {} failed parsing".format(case_id, case_version))
+            return False
+
+
     def get_cases(self, assembly=None, sample_type=None, params={}):
+        """
+        todo:  remove the assembly and sample_type parameters, kept in for backward compatibilty
+        :param assembly:
+        :param sample_type:
+        :param params:
+        :return:
+        """
         page = 1
+        if assembly: params['assembly'] = assembly
+        if sample_type: params['sample_type'] = sample_type
+
         while True:
             try:
                 results = self.get(
@@ -59,10 +108,6 @@ class CipApiClient(RestClient):
             for result in results:
                 last_status = result["last_status"]
                 if last_status in ["blocked", "waiting_payload"]:
-                    continue
-                if assembly and result['assembly'] != assembly:
-                    continue
-                if sample_type and result['sample_type'] != sample_type:
                     continue
                 case_id, case_version = result["interpretation_request_id"].split("-")
                 try:
@@ -141,12 +186,23 @@ class CipApiCase(object):
         :return:
         """
         try:
+            if not self.raw_case['interpretation_request_data']:
+                raise IndexError('there is no associated interpretation_request_data')
             data = self.raw_case['interpretation_request_data']['json_request']
             identifier = str(self.raw_case['interpretation_request_id'])
             version = int(self.raw_case['version'])
         except ValueError, ex:
             logging.error("Something is very wrong with this case formatting: {}".format(ex.message))
             raise ex
+        except TypeError, ex:
+            logging.error("Some field is missing from case {}: {}".format(self.raw_case['interpretation_request_id'],
+                                                                          ex.message))
+            raise ex
+        except IndexError, ex:
+            logging.error("Some field is missing from case {}: {}".format(self.raw_case['interpretation_request_id'],
+                                                                          ex.message))
+            raise ex
+
         return data, identifier, version
 
     def _get_latest_raw_interpreted_genome(self):
@@ -212,10 +268,10 @@ class CipApiCase(object):
         :rtype: InterpretedGenomeRD or CancerInterpretedGenome
         """
         if self.is_rare_disease():
-            interpreted_genome = MigrationHelpers.migrate_interpretation_request_rd_to_interpreted_genome_latest(
+            interpreted_genome = MigrationHelpers.migrate_interpretation_request_rd_to_latest(
                 json_dict=self.raw_interpretation_request, assembly=self.assembly)
         elif self.is_cancer():
-            interpreted_genome = MigrationHelpers.migrate_interpretation_request_cancer_to_interpreted_genome_latest(
+            interpreted_genome = MigrationHelpers.migrate_interpretation_request_cancer_to_latest(
                 json_dict=self.raw_interpretation_request, assembly=self.assembly, interpretation_service='tiering',
                 reference_database_versions={}, software_versions={}, report_url=None, comments=[])
         else:
