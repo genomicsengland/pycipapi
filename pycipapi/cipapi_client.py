@@ -268,10 +268,10 @@ class CipApiCase(object):
         :rtype: InterpretedGenomeRD or CancerInterpretedGenome
         """
         if self.is_rare_disease():
-            interpreted_genome = MigrationHelpers.migrate_interpretation_request_rd_to_latest(
+            interpreted_genome = MigrationHelpers.migrate_interpretation_request_rd_to_interpreted_genome_latest(
                 json_dict=self.raw_interpretation_request, assembly=self.assembly)
         elif self.is_cancer():
-            interpreted_genome = MigrationHelpers.migrate_interpretation_request_cancer_to_latest(
+            interpreted_genome = MigrationHelpers.migrate_interpretation_request_cancer_to_interpreted_genome_latest(
                 json_dict=self.raw_interpretation_request, assembly=self.assembly, interpretation_service='tiering',
                 reference_database_versions={}, software_versions={}, report_url=None, comments=[])
         else:
