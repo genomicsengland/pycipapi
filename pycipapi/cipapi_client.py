@@ -17,6 +17,11 @@ class CipApiClient(RestClient):
     IR_ENDPOINT = "{url_base}/interpretation-request/{ir_id}/{ir_v}"
     IR_LIST_ENDPOINT = "{url_base}/interpretation-request?page={page}&page_size=100"
     EQ_ENDPOINT = "{url_base}/exit-questionnaire/{ir_id}/{ir_v}/{cr_v}"
+    MEMBER_ENDPOINT = "{url_base}/interpretation-request?members={member}"
+    FAMILY_ENDPOINT = "{url_base}/interpretation-request?family_id={family}"
+    COHORT_ENDPOINT = "{url_base}/interpretation-request?cohort_id={cohort}"
+    CIP_ENDPOINT = "{url_base}/interpretation-request?cip={cip}"
+    WORKSPACE_ENDPOINT = "{url_base}/interpretation-request?workspace={workspace}"
 
     def __init__(self, url_base, token=None, user=None, password=None):
         """
