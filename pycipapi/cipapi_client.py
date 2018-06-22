@@ -69,7 +69,7 @@ class CipApiClient(RestClient):
         currently returns a case or False
         :return:
         """
-        # try:
+        
         case_id, case_version = case_list_entity["interpretation_request_id"].split("-")
         try:
             case = self.get_case(case_id, case_version)
