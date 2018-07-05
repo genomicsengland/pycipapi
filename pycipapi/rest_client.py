@@ -51,7 +51,7 @@ class RestClient(object):
         if endpoint is None or payload is None:
             raise ValueError("Must define payload and endpoint before post")
         url = self.build_url(self.url_base, endpoint)
-        logging.info("{date} {method} {url}".format(
+        logging.debug("{date} {method} {url}".format(
             date=datetime.datetime.now(),
             method="POST",
             url="{}?{}".format(url, "&".join(["{}={}".format(k, v) for k, v in url_params.iteritems()]))
@@ -67,7 +67,7 @@ class RestClient(object):
         if endpoint is None:
             raise ValueError("Must define endpoint before get")
         url = self.build_url(self.url_base, endpoint)
-        logging.info("{date} {method} {url}".format(
+        logging.debug("{date} {method} {url}".format(
             date=datetime.datetime.now(),
             method="GET",
             url="{}?{}".format(url, "&".join(["{}={}".format(k, v) for k, v in url_params.iteritems()]))
@@ -83,7 +83,7 @@ class RestClient(object):
         if endpoint is None:
             raise ValueError("Must define endpoint before get")
         url = self.build_url(self.url_base, endpoint)
-        logging.info("{date} {method} {url}".format(
+        logging.debug("{date} {method} {url}".format(
             date=datetime.datetime.now(),
             method="DELETE",
             url="{}?{}".format(url, "&".join(["{}={}".format(k, v) for k, v in url_params.iteritems()]))
@@ -93,7 +93,7 @@ class RestClient(object):
         return json.loads(response.content) if response.content else None
 
     def _verify_response(self, response):
-        logging.info("{date} response status code {status}".format(
+        logging.debug("{date} response status code {status}".format(
             date=datetime.datetime.now(),
             status=response.status_code)
         )

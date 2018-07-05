@@ -8,6 +8,7 @@ from protocols.reports_5_0_0 import Assembly, InterpretedGenomeRD, ClinicalRepor
     CancerInterpretationRequest, CancerInterpretedGenome, RareDiseaseExitQuestionnaire, CancerExitQuestionnaire, \
     InterpretationRequestRD, ClinicalReportCancer, CancerParticipant
 from protocols.migration.migration_helpers import MigrationHelpers
+from DataModels.GelPedigree import GelPedigree
 
 
 class CipApiClient(RestClient):
@@ -29,7 +30,7 @@ class CipApiClient(RestClient):
         RestClient.__init__(self, url_base)
         self.token = "JWT {}".format(token) if token is not None else None
         self.user = user
-        self.password = password
+        self.password = password if password else ""
         if (self.token is None) and (self.user is None or self.password is None):
             raise ValueError("Authentication is required. Provide either token or user and password.")
         self.set_authenticated_header()
@@ -268,27 +269,13 @@ class CipApiCase(object):
 
     def get_pedigree(self):
         """
-        :rtype: Pedigree
+        :rtype: GelPedigree
         """
         if self.is_rare_disease():
-            return MigrationHelpers.migrate_pedigree_to_latest(self.raw_pedigree)
+            pedigree = MigrationHelpers.migrate_pedigree_to_latest(self.raw_pedigree)
+            return GelPedigree.fromJsonDict(pedigree.toJsonDict())
         else:
             raise ValueError("There are no pedigrees for cancer cases")
-
-    @staticmethod
-    def get_proband(pedigree):
-        """
-
-        :param pedigree:
-        :type pedigree: Pedigree
-        :rtype: PedigreeMember
-        :return:
-        """
-        proband = None
-        for participant in pedigree.members:
-            if participant.isProband:
-                proband = participant
-        return proband
 
     def get_cancer_participant(self):
         """
