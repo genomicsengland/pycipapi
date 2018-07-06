@@ -12,7 +12,7 @@ from protocols.reports_5_0_0 import InterpretedGenomeRD, ClinicalReportRD, Cance
 from protocols.participant_1_1_0 import Pedigree
 
 from pycipapi.cipapi_client import CipApiClient, CipApiCase
-from pycipapi.cva_helper import CvaHelper
+from pycipapi.cva_helper import CvaInjectionHelper
 
 
 class TestPyCipApi(TestCase):
@@ -48,7 +48,7 @@ class TestPyCipApi(TestCase):
         self.assertTrue(validation.result, validation.messages)
 
         # injection objects
-        tv_inject = CvaHelper.generate_tiered_variant_inject(case)
+        tv_inject = CvaInjectionHelper.generate_tiered_variant_inject(case)
         validation = TieredVariantInjectRD.validate(tv_inject.toJsonDict(), verbose=True)
         self.assertTrue(validation.result, validation.messages)
 
@@ -57,7 +57,7 @@ class TestPyCipApi(TestCase):
         has_ig = False
         if ig:
             self.assertTrue(InterpretedGenomeRD.validate(ig.toJsonDict()))
-            cv_inject = CvaHelper.generate_candidate_variant_inject(case)
+            cv_inject = CvaInjectionHelper.generate_candidate_variant_inject(case)
             validation = CandidateVariantInjectRD.validate(cv_inject.toJsonDict(), verbose=True)
             self.assertTrue(validation.result, validation.messages)
             has_ig = True
@@ -67,7 +67,7 @@ class TestPyCipApi(TestCase):
         has_cr = False
         if cr:
             self.assertTrue(ClinicalReportRD.validate(cr.toJsonDict()))
-            rv_inject = CvaHelper.generate_reported_variant_inject(case)
+            rv_inject = CvaInjectionHelper.generate_reported_variant_inject(case)
             validation = ReportedVariantInjectRD.validate(rv_inject.toJsonDict(), verbose=True)
             self.assertTrue(validation.result, validation.messages)
             has_cr = True
@@ -78,7 +78,7 @@ class TestPyCipApi(TestCase):
         if eq:
             validation = RareDiseaseExitQuestionnaire.validate(eq.toJsonDict(), verbose=True)
             self.assertTrue(validation.result, validation.messages)
-            eq_inject = CvaHelper.generate_exit_questionnaire_inject(case)
+            eq_inject = CvaInjectionHelper.generate_exit_questionnaire_inject(case)
             validation = ExitQuestionnaireInjectRD.validate(eq_inject.toJsonDict(), verbose=True)
             self.assertTrue(validation.result, validation.messages)
             has_eq = True
@@ -111,7 +111,7 @@ class TestPyCipApi(TestCase):
         if eq:
             validation = CancerExitQuestionnaire.validate(eq.toJsonDict(), verbose=True)
             self.assertTrue(validation.result, validation.messages)
-            eq_inject = CvaHelper.generate_exit_questionnaire_inject(case)
+            eq_inject = CvaInjectionHelper.generate_exit_questionnaire_inject(case)
             validation = ExitQuestionnaireInjectCancer.validate(eq_inject.toJsonDict(), verbose=True)
             self.assertTrue(validation.result, validation.messages)
             has_eq = True

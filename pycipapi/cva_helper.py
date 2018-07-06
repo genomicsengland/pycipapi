@@ -1,12 +1,13 @@
 from protocols.cva_1_0_0 import TieredVariantInjectRD, TieredVariantInjectCancer, CandidateVariantInjectRD, \
     CandidateVariantInjectCancer, ReportedVariantInjectRD, ReportedVariantInjectCancer, ExitQuestionnaireInjectRD, \
     ExitQuestionnaireInjectCancer, CancerGermlineVariantLevelQuestionnaire, CancerSomaticVariantLevelQuestionnaire, \
-    ReportEventQuestionnaireRD, ReportedVariantQuestionnaireRD, ExitQuestionnaireRD
+    ReportEventQuestionnaireRD, ReportedVariantQuestionnaireRD, ExitQuestionnaireRD, PedigreeInjectRD, \
+    ParticipantInjectCancer
 from protocols.reports_5_0_0 import Program, VariantCoordinates
 from pycipapi.cipapi_client import CipApiCase
 
 
-class CvaHelper(object):
+class CvaInjectionHelper(object):
     """
     This class has helper methods to generate CVA injection objects from CIPAPI cases.
     """
@@ -148,7 +149,7 @@ class CvaHelper(object):
                 parentVersion=case.case_version,
                 assembly=case.assembly,
                 # transform RareDiseaseExitQuestionnaire into ExitQuestionnaireRD
-                exitQuestionnaireRd=CvaHelper.generate_exit_questionnaire_rd(case),
+                exitQuestionnaireRd=CvaInjectionHelper.generate_exit_questionnaire_rd(case),
                 author=exit_questionnaire.reporter,
                 authorVersion=None,
                 workspace=interpretation_request.workspace,
@@ -163,9 +164,9 @@ class CvaHelper(object):
                 parentVersion=case.case_version,
                 assembly=case.assembly,
                 # transform [CancerGermlineVariantLevelQuestions] into [CancerGermlineVariantLevelQuestionnaire]
-                cancerGermlineExitQuestionnaires=CvaHelper.extract_cancer_germline_exit_questionnaires(case),
+                cancerGermlineExitQuestionnaires=CvaInjectionHelper.extract_cancer_germline_exit_questionnaires(case),
                 # transform [CancerSomaticVariantLevelQuestions] into [CancerSomaticVariantLevelQuestionnaire]
-                cancerSomaticExitQuestionnaires=CvaHelper.extract_cancer_somatic_exit_questionnaires(case),
+                cancerSomaticExitQuestionnaires=CvaInjectionHelper.extract_cancer_somatic_exit_questionnaires(case),
                 cancercaseLevelQuestions=exit_questionnaire.caseLevelQuestions,
                 # TODO: transform array<AdditionalVariantsQuestions> into string
                 otherActionableVariants=None,    #exit_questionnaire.otherActionableVariants,
@@ -291,3 +292,43 @@ class CvaHelper(object):
         exit_questionnaire_rd = ExitQuestionnaireRD(
             variants=reported_variant_q_rd_list)
         return exit_questionnaire_rd
+
+    @staticmethod
+    def generate_pedigree_inject(case):
+        """
+        :type case: CipApiCase
+        :rtype: PedigreeInjectRD
+        """
+        if case.is_rare_disease():
+            pedigree = case.get_pedigree()
+            pedigree_inject = PedigreeInjectRD(
+                id=case.case_id,
+                version=case.case_version,
+                pedigree=pedigree,
+                reportModelVersion=pedigree.versionControl.GitVersionControl)
+        elif case.is_cancer():
+            raise ValueError("Cancer cases do not have pedigree information")
+        else:
+            raise ValueError("Unknown type of case")
+
+        return pedigree_inject
+
+    @staticmethod
+    def generate_participant_inject(case):
+        """
+        :type case: CipApiCase
+        :rtype: ParticipantInjectCancer
+        """
+        if case.is_cancer():
+            participant = case.get_cancer_participant()
+            participant_inject = ParticipantInjectCancer(
+                id=case.case_id,
+                version=case.case_version,
+                participant=participant,
+                reportModelVersion=participant.versionControl.GitVersionControl)
+        elif case.is_rare_disease():
+            raise ValueError("Rare disease cases do not have cancer participant information")
+        else:
+            raise ValueError("Unknown type of case")
+
+        return participant_inject

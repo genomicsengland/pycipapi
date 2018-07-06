@@ -68,7 +68,7 @@ class CipApiClient(RestClient):
         """
         use the raw case list entity to cast into a case and return
         currently returns a case or False
-        :return:
+        :rtype: CipApiCase
         """
         
         case_id, case_version = case_list_entity["interpretation_request_id"].split("-")
@@ -85,18 +85,20 @@ class CipApiClient(RestClient):
             logging.warning("Case with id {} and version {} failed parsing".format(case_id, case_version))
             return False
 
-
-    def get_cases(self, assembly=None, sample_type=None, params={}):
+    def get_cases(self, assembly=None, program=None, params={}):
         """
         todo:  remove the assembly and sample_type parameters, kept in for backward compatibilty
-        :param assembly:
-        :param sample_type:
-        :param params:
-        :return:
+        :type assembly: Assembly
+        :type program: Program
+        :type params: dict
+        :rtype: collections.Iterable[CipApiCase]
         """
         page = 1
-        if assembly: params['assembly'] = assembly
-        if sample_type: params['sample_type'] = sample_type
+        if assembly:
+            params['assembly'] = assembly
+        # NOTE: unfortunately program and sample type differ just by an underscore...
+        if program:
+            params['sample_type'] = "raredisease" if program == Program.rare_disease else program
 
         while True:
             try:
@@ -119,15 +121,21 @@ class CipApiClient(RestClient):
                 yield case
             page += 1
 
-    def get_case(self, ir_id, ir_version):
+    def get_case(self, case_id, case_version):
+        """
+        :type case_id: str
+        :type case_version: int
+        :rtype: CipApiCase
+        """
         # fetch the interpretation request
         case = None
         try:
             raw_interpretation_request = self.get(
-                endpoint=self.IR_ENDPOINT.format(url_base=self.ENDPOINT_BASE, ir_id=ir_id, ir_v=ir_version))
+                endpoint=self.IR_ENDPOINT.format(url_base=self.ENDPOINT_BASE, ir_id=case_id, ir_v=case_version))
             case = CipApiCase(raw_interpretation_request)
         except NotFound:
-            logging.warning("Not found case with id {id} and version {version}".format(id=ir_id, version=ir_version))
+            logging.warning("Not found case with id {id} and version {version}"
+                            .format(id=case_id, version=case_version))
         # fetch the exit questionnaire
         try:
             if case and case.raw_clinical_report:
@@ -183,8 +191,7 @@ class CipApiCase(object):
 
     def _get_raw_interpretation_request(self):
         """
-
-        :return:
+        :rtype: (dict, str, int)
         """
         try:
             if not self.raw_case['interpretation_request_data']:
@@ -208,8 +215,7 @@ class CipApiCase(object):
 
     def _get_latest_raw_interpreted_genome(self):
         """
-
-        :return:
+        :rtype: (dict, str, int)
         """
         ig_list = self.raw_case.get('interpreted_genome')
         sorted_ig_list = sorted(ig_list, key=lambda ig: ig['created_at'], reverse=True)
@@ -224,8 +230,7 @@ class CipApiCase(object):
 
     def _get_latest_raw_clinical_report(self):
         """
-
-        :return:
+        :rtype: (dict, int)
         """
         cr_list = self.raw_case.get('clinical_report')
         sorted_cr_list = sorted(cr_list, key=lambda cr: cr['created_at'], reverse=True)
@@ -238,10 +243,16 @@ class CipApiCase(object):
             return None, None
 
     def _get_raw_pedigree(self):
+        """
+        :rtype: dict
+        """
         raw_pedigree = self.raw_case['interpretation_request_data']['json_request']['pedigree']
         return raw_pedigree
 
     def _get_raw_cancer_participant(self):
+        """
+        :rtype: dict
+        """
         raw_cancer_participant = self.raw_case['interpretation_request_data']['json_request']['cancerParticipant']
         return raw_cancer_participant
 
@@ -280,6 +291,9 @@ class CipApiCase(object):
         return interpreted_genome
 
     def has_interpreted_genome(self):
+        """
+        :rtype: bool
+        """
         return self.raw_interpreted_genome is not None
 
     def get_interpreted_genome(self):
@@ -306,6 +320,9 @@ class CipApiCase(object):
         return interpreted_genome
 
     def has_clinical_report(self):
+        """
+        :rtype: bool
+        """
         return self.raw_clinical_report is not None
 
     def get_clinical_report(self):
@@ -348,6 +365,9 @@ class CipApiCase(object):
             raise ValueError("There are no cancer participants for rare disease cases")
 
     def has_exit_questionnaire(self):
+        """
+        :rtype: bool
+        """
         return self.raw_questionnaire is not None
 
     def get_exit_questionnaire(self):
@@ -367,21 +387,32 @@ class CipApiCase(object):
         return exit_questionnaire
 
     def is_rare_disease(self):
+        """
+        :rtype: bool
+        """
         return self.program == Program.rare_disease
 
     def is_cancer(self):
+        """
+        :rtype: bool
+        """
         return self.program == Program.cancer
 
     def is_assembly_38(self):
+        """
+        :rtype: bool
+        """
         return self.assembly == Assembly.GRCh38
 
     def is_assembly_37(self):
+        """
+        :rtype: bool
+        """
         return self.assembly == Assembly.GRCh37
 
     @staticmethod
     def get_proband(pedigree):
         """
-
         :param pedigree:
         :type pedigree: Pedigree
         :rtype: PedigreeMember
