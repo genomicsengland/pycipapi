@@ -16,7 +16,7 @@ class CipApiClient(RestClient):
     ENDPOINT_BASE = "api/2"
     AUTH_ENDPOINT = "{url_base}/get-token/".format(url_base=ENDPOINT_BASE)
     IR_ENDPOINT = "{url_base}/interpretation-request/{ir_id}/{ir_v}"
-    IR_LIST_ENDPOINT = "{url_base}/interpretation-request?page={page}&page_size=100"
+    IR_LIST_ENDPOINT = "{url_base}/interpretation-request?page={page}&page_size=100&minimize=true"
     EQ_ENDPOINT = "{url_base}/exit-questionnaire/{ir_id}/{ir_v}/{cr_v}"
 
     def __init__(self, url_base, token=None, user=None, password=None):
