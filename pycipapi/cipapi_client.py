@@ -16,8 +16,9 @@ class CipApiClient(RestClient):
     ENDPOINT_BASE = "api/2"
     AUTH_ENDPOINT = "{url_base}/get-token/".format(url_base=ENDPOINT_BASE)
     IR_ENDPOINT = "{url_base}/interpretation-request/{ir_id}/{ir_v}"
-    IR_LIST_ENDPOINT = "{url_base}/interpretation-request?page={page}&page_size={page_size}&minimize=true"
+    IR_LIST_ENDPOINT = "{url_base}/interpretation-request?page={page}&page_size={page_size}&minimize={minimize}"
     EQ_ENDPOINT = "{url_base}/exit-questionnaire/{ir_id}/{ir_v}/{cr_v}"
+    PAGE_SIZE_MAX = 500
 
     def __init__(self, url_base, token=None, user=None, password=None, retries=5):
         """
@@ -42,13 +43,14 @@ class CipApiClient(RestClient):
         }).get('token')
         return "JWT {}".format(token)
 
-    def get_raw_cases(self, params={}, page=1, page_size=100):
+    def get_raw_cases(self, params={}, page=1, page_size=100, minimize="true"):
         """
         gets the un-cast contents of the interpretation request list endpoint
         do not perform migrations
         :type params: dict
         :type page: int
         :type page_size: int
+        :type minimize: str
         :rtype: collections.Iterable[dict]
         does not check and exclude on the basis of last_status, unlike get_cases
         :return:
@@ -56,7 +58,10 @@ class CipApiClient(RestClient):
         while True:
             try:
                 results = self.get(
-                    endpoint=self.IR_LIST_ENDPOINT.format(url_base=self.ENDPOINT_BASE, page=page, page_size=page_size),
+                    endpoint=self.IR_LIST_ENDPOINT.format(
+                        url_base=self.ENDPOINT_BASE, page=page, page_size=min(page_size, self.PAGE_SIZE_MAX),
+                        minimize=minimize
+                    ),
                     url_params=params)["results"]
             except NotFound:
                 logging.info("Finished iterating through report events in the CIPAPI")
@@ -87,13 +92,14 @@ class CipApiClient(RestClient):
             logging.warning("Case with id {} and version {} failed parsing".format(case_id, case_version))
         return None
 
-    def get_cases(self, assembly=None, program=None, params={}, page=1, page_size=100):
+    def get_cases(self, assembly=None, program=None, params={}, page=1, page_size=100, minimize="true"):
         """
         :type assembly: Assembly
         :type program: Program
         :type params: dict
         :type page: int
         :type page_size: int
+        :type minimize: str
         :rtype: collections.Iterable[CipApiCase]
         """
         if assembly:
@@ -105,7 +111,9 @@ class CipApiClient(RestClient):
         while True:
             try:
                 results = self.get(
-                    endpoint=self.IR_LIST_ENDPOINT.format(url_base=self.ENDPOINT_BASE, page=page, page_size=page_size),
+                    endpoint=self.IR_LIST_ENDPOINT.format(
+                        url_base=self.ENDPOINT_BASE, page=page, page_size=min(page_size, self.PAGE_SIZE_MAX),
+                        minimize=minimize),
                     url_params=params)["results"]
             except NotFound:
                 logging.info("Finished iterating through report events in the CIPAPI")
@@ -409,20 +417,6 @@ class CipApiCase(object):
         :rtype: bool
         """
         return self.assembly == Assembly.GRCh37
-
-    @staticmethod
-    def get_proband(pedigree):
-        """
-        :param pedigree:
-        :type pedigree: Pedigree
-        :rtype: PedigreeMember
-        :return:
-        """
-        proband = None
-        for participant in pedigree.members:
-            if participant.isProband:
-                proband = participant
-        return proband
 
     @staticmethod
     def split_assembly_from_patch(interpretation_request_rd_or_cancer):
