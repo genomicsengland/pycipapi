@@ -19,7 +19,7 @@ class CipApiClient(RestClient):
     IR_LIST_ENDPOINT = "{url_base}/interpretation-request?page={page}&page_size=100&minimize=true"
     EQ_ENDPOINT = "{url_base}/exit-questionnaire/{ir_id}/{ir_v}/{cr_v}"
 
-    def __init__(self, url_base, token=None, user=None, password=None):
+    def __init__(self, url_base, token=None, user=None, password=None, retries=5):
         """
         If user and password are not provided there will be no token renewal
         :param url_base:
@@ -27,7 +27,7 @@ class CipApiClient(RestClient):
         :param user:
         :param password:
         """
-        RestClient.__init__(self, url_base)
+        RestClient.__init__(self, url_base=url_base, retries=retries)
         self.token = "JWT {}".format(token) if token is not None else None
         self.user = user
         self.password = password if password else ""
