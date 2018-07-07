@@ -16,7 +16,7 @@ class CipApiClient(RestClient):
     ENDPOINT_BASE = "api/2"
     AUTH_ENDPOINT = "{url_base}/get-token/".format(url_base=ENDPOINT_BASE)
     IR_ENDPOINT = "{url_base}/interpretation-request/{ir_id}/{ir_v}"
-    IR_LIST_ENDPOINT = "{url_base}/interpretation-request?page={page}&page_size=100&minimize=true"
+    IR_LIST_ENDPOINT = "{url_base}/interpretation-request?page={page}&page_size={page_size}&minimize=true"
     EQ_ENDPOINT = "{url_base}/exit-questionnaire/{ir_id}/{ir_v}/{cr_v}"
 
     def __init__(self, url_base, token=None, user=None, password=None, retries=5):
@@ -42,18 +42,21 @@ class CipApiClient(RestClient):
         }).get('token')
         return "JWT {}".format(token)
 
-    def get_case_list(self, params={}, page=1):
+    def get_raw_cases(self, params={}, page=1, page_size=100):
         """
         gets the un-cast contents of the interpretation request list endpoint
         do not perform migrations
-
+        :type params: dict
+        :type page: int
+        :type page_size: int
+        :rtype: collections.Iterable[dict]
         does not check and exclude on the basis of last_status, unlike get_cases
         :return:
         """
         while True:
             try:
                 results = self.get(
-                    endpoint=self.IR_LIST_ENDPOINT.format(url_base=self.ENDPOINT_BASE, page=page),
+                    endpoint=self.IR_LIST_ENDPOINT.format(url_base=self.ENDPOINT_BASE, page=page, page_size=page_size),
                     url_params=params)["results"]
             except NotFound:
                 logging.info("Finished iterating through report events in the CIPAPI")
@@ -64,10 +67,11 @@ class CipApiClient(RestClient):
 
             page += 1
 
-    def get_case_from_case_list(self, case_list_entity):
+    def get_case_from_raw_case(self, case_list_entity):
         """
         use the raw case list entity to cast into a case and return
         currently returns a case or False
+        :type case_list_entity: dict
         :rtype: CipApiCase
         """
         
@@ -77,23 +81,21 @@ class CipApiClient(RestClient):
             return case
         except MigrationError, ex:
             logging.warning("Case with id {} and version {} failed migration".format(case_id, case_version))
-            return False
         except TypeError, ex:
             logging.warning("Case with id {} and version {} failed parsing".format(case_id, case_version))
-            return False
         except IndexError, ex:
             logging.warning("Case with id {} and version {} failed parsing".format(case_id, case_version))
-            return False
+        return None
 
-    def get_cases(self, assembly=None, program=None, params={}):
+    def get_cases(self, assembly=None, program=None, params={}, page=1, page_size=100):
         """
-        todo:  remove the assembly and sample_type parameters, kept in for backward compatibilty
         :type assembly: Assembly
         :type program: Program
         :type params: dict
+        :type page: int
+        :type page_size: int
         :rtype: collections.Iterable[CipApiCase]
         """
-        page = 1
         if assembly:
             params['assembly'] = assembly
         # NOTE: unfortunately program and sample type differ just by an underscore...
@@ -103,7 +105,7 @@ class CipApiClient(RestClient):
         while True:
             try:
                 results = self.get(
-                    endpoint=self.IR_LIST_ENDPOINT.format(url_base=self.ENDPOINT_BASE, page=page),
+                    endpoint=self.IR_LIST_ENDPOINT.format(url_base=self.ENDPOINT_BASE, page=page, page_size=page_size),
                     url_params=params)["results"]
             except NotFound:
                 logging.info("Finished iterating through report events in the CIPAPI")
@@ -112,13 +114,11 @@ class CipApiClient(RestClient):
                 last_status = result["last_status"]
                 if last_status in ["blocked", "waiting_payload"]:
                     continue
-                case_id, case_version = result["interpretation_request_id"].split("-")
-                try:
-                    case = self.get_case(case_id, case_version)
-                except MigrationError, ex:
-                    logging.warning("Case with id {} and version {} failed migration".format(case_id, case_version))
+                case = self.get_case_from_raw_case(result)
+                if case:
+                    yield case
+                else:
                     continue
-                yield case
             page += 1
 
     def get_case(self, case_id, case_version):
