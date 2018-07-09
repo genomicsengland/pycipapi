@@ -16,10 +16,11 @@ class CipApiClient(RestClient):
     ENDPOINT_BASE = "api/2"
     AUTH_ENDPOINT = "{url_base}/get-token/".format(url_base=ENDPOINT_BASE)
     IR_ENDPOINT = "{url_base}/interpretation-request/{ir_id}/{ir_v}"
-    IR_LIST_ENDPOINT = "{url_base}/interpretation-request?page={page}&page_size=100&minimize=true"
+    IR_LIST_ENDPOINT = "{url_base}/interpretation-request?page={page}&page_size={page_size}&minimize={minimize}"
     EQ_ENDPOINT = "{url_base}/exit-questionnaire/{ir_id}/{ir_v}/{cr_v}"
+    PAGE_SIZE_MAX = 500
 
-    def __init__(self, url_base, token=None, user=None, password=None):
+    def __init__(self, url_base, token=None, user=None, password=None, retries=5):
         """
         If user and password are not provided there will be no token renewal
         :param url_base:
@@ -27,7 +28,7 @@ class CipApiClient(RestClient):
         :param user:
         :param password:
         """
-        RestClient.__init__(self, url_base)
+        RestClient.__init__(self, url_base=url_base, retries=retries)
         self.token = "JWT {}".format(token) if token is not None else None
         self.user = user
         self.password = password if password else ""
@@ -42,18 +43,25 @@ class CipApiClient(RestClient):
         }).get('token')
         return "JWT {}".format(token)
 
-    def get_case_list(self, params={}, page=1):
+    def get_raw_cases(self, params={}, page=1, page_size=100, minimize="true"):
         """
         gets the un-cast contents of the interpretation request list endpoint
         do not perform migrations
-
+        :type params: dict
+        :type page: int
+        :type page_size: int
+        :type minimize: str
+        :rtype: collections.Iterable[dict]
         does not check and exclude on the basis of last_status, unlike get_cases
         :return:
         """
         while True:
             try:
                 results = self.get(
-                    endpoint=self.IR_LIST_ENDPOINT.format(url_base=self.ENDPOINT_BASE, page=page),
+                    endpoint=self.IR_LIST_ENDPOINT.format(
+                        url_base=self.ENDPOINT_BASE, page=page, page_size=min(page_size, self.PAGE_SIZE_MAX),
+                        minimize=minimize
+                    ),
                     url_params=params)["results"]
             except NotFound:
                 logging.info("Finished iterating through report events in the CIPAPI")
@@ -64,10 +72,11 @@ class CipApiClient(RestClient):
 
             page += 1
 
-    def get_case_from_case_list(self, case_list_entity):
+    def get_case_from_raw_case(self, case_list_entity):
         """
         use the raw case list entity to cast into a case and return
         currently returns a case or False
+        :type case_list_entity: dict
         :rtype: CipApiCase
         """
         
@@ -77,23 +86,22 @@ class CipApiClient(RestClient):
             return case
         except MigrationError, ex:
             logging.warning("Case with id {} and version {} failed migration".format(case_id, case_version))
-            return False
         except TypeError, ex:
             logging.warning("Case with id {} and version {} failed parsing".format(case_id, case_version))
-            return False
         except IndexError, ex:
             logging.warning("Case with id {} and version {} failed parsing".format(case_id, case_version))
-            return False
+        return None
 
-    def get_cases(self, assembly=None, program=None, params={}):
+    def get_cases(self, assembly=None, program=None, params={}, page=1, page_size=100, minimize="true"):
         """
-        todo:  remove the assembly and sample_type parameters, kept in for backward compatibilty
         :type assembly: Assembly
         :type program: Program
         :type params: dict
+        :type page: int
+        :type page_size: int
+        :type minimize: str
         :rtype: collections.Iterable[CipApiCase]
         """
-        page = 1
         if assembly:
             params['assembly'] = assembly
         # NOTE: unfortunately program and sample type differ just by an underscore...
@@ -103,7 +111,9 @@ class CipApiClient(RestClient):
         while True:
             try:
                 results = self.get(
-                    endpoint=self.IR_LIST_ENDPOINT.format(url_base=self.ENDPOINT_BASE, page=page),
+                    endpoint=self.IR_LIST_ENDPOINT.format(
+                        url_base=self.ENDPOINT_BASE, page=page, page_size=min(page_size, self.PAGE_SIZE_MAX),
+                        minimize=minimize),
                     url_params=params)["results"]
             except NotFound:
                 logging.info("Finished iterating through report events in the CIPAPI")
@@ -112,13 +122,11 @@ class CipApiClient(RestClient):
                 last_status = result["last_status"]
                 if last_status in ["blocked", "waiting_payload"]:
                     continue
-                case_id, case_version = result["interpretation_request_id"].split("-")
-                try:
-                    case = self.get_case(case_id, case_version)
-                except MigrationError, ex:
-                    logging.warning("Case with id {} and version {} failed migration".format(case_id, case_version))
+                case = self.get_case_from_raw_case(result)
+                if case:
+                    yield case
+                else:
                     continue
-                yield case
             page += 1
 
     def get_case(self, case_id, case_version):
@@ -409,20 +417,6 @@ class CipApiCase(object):
         :rtype: bool
         """
         return self.assembly == Assembly.GRCh37
-
-    @staticmethod
-    def get_proband(pedigree):
-        """
-        :param pedigree:
-        :type pedigree: Pedigree
-        :rtype: PedigreeMember
-        :return:
-        """
-        proband = None
-        for participant in pedigree.members:
-            if participant.isProband:
-                proband = participant
-        return proband
 
     @staticmethod
     def split_assembly_from_patch(interpretation_request_rd_or_cancer):

@@ -112,6 +112,9 @@ class RestClient(object):
             elif response.status_code == 406:
                 logging.warning("Blocked case")
                 raise BlockedCase(response.text)
+            elif response.status_code == 503:
+                logging.warning("Service unavailable")
+                raise backoff_retrier.Retriable(response.text)
             # ValueError will not
             raise HTTPError("{}:{}".format(response.status_code, response.text), response=response)
         else:
