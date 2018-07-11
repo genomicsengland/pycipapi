@@ -174,6 +174,7 @@ class CipApiCase(object):
         # reads some fields from the raw case
         self.program = self.map_sampletype2program[self.raw_case['sample_type']]
         self.assembly = self.raw_case.get('assembly')
+        self.proband = self.raw_case.get('proband')
         if self.is_rare_disease():
             self.group_id = self.raw_case.get('family_id')
         elif self.is_cancer():
