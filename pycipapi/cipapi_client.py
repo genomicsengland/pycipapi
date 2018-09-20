@@ -11,7 +11,7 @@ class CipApiClient(RestClient):
     IG_ENDPOINT = "{url_base}/interpreted-genome".format(url_base=ENDPOINT_BASE)
     PAGE_SIZE_MAX = 500
 
-    def __init__(self, url_base, token=None, user=None, password=None, retries=5):
+    def __init__(self, url_base, token=None, user=None, password=None, retries=1000):
         """
         If user and password are not provided there will be no token renewal
         :param url_base:
