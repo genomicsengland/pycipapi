@@ -144,7 +144,7 @@ class TestPyCipApi(TestCase):
                     elif case.is_cancer():
                         self.assertTrue(InterpretedGenomeRD.validate(ig.toJsonDict(), verbose=True))
                     ig_tested[case.program] = True
-            except MigrationError, ex:
+            except MigrationError as ex:
                 logging.warning("Migration error for interpreted genome for case with id {} and version {}: {}".format(
                     case.case_id, case.case_version, ex.message))
 
@@ -156,7 +156,7 @@ class TestPyCipApi(TestCase):
                     elif case.is_cancer():
                         self.assertTrue(ClinicalReportCancer.validate(cr.toJsonDict(), verbose=True))
                     cr_tested[case.program] = True
-            except MigrationError, ex:
+            except MigrationError as ex:
                 logging.warning("Migration error for clinical report for case with id {} and version {}: {}".format(
                     case.case_id, case.case_version, ex.message))
 
@@ -168,7 +168,7 @@ class TestPyCipApi(TestCase):
                     elif case.is_cancer():
                         self.assertTrue(RareDiseaseExitQuestionnaire.validate(cr.toJsonDict(), verbose=True))
                     eq_tested[case.program] = True
-            except MigrationError, ex:
+            except MigrationError as ex:
                 logging.warning("Migration error for exit questionnaire for case with id {} and version {}: {}".format(
                     case.case_id, case.case_version, ex.message))
 
@@ -190,5 +190,5 @@ class TestPyCipApi(TestCase):
                         panels[panel_name] = set()
                     panels[panel_name].add(ir.pedigree.familyId)
         for panel, families in panels.iteritems():
-            print "Panel '{}' has {} cases".format(panel, len(list(families)))
+            print("Panel '{}' has {} cases".format(panel, len(list(families))))
 
