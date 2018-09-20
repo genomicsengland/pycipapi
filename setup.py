@@ -1,9 +1,8 @@
-from distutils.core import setup
-from setuptools import find_packages
+from setuptools import find_packages, setup
 
 setup(
     name='pycipapi',
-    version='0.3.1',
+    version='0.4.0',
     packages=find_packages(),
     scripts=[],
     url='',
@@ -13,7 +12,6 @@ setup(
     description='',
     install_requires=[
         'requests',
-        'GelReportModels>=7.0,<7.1',
-        'pythoncommonlibs'
+        'GelReportModels>=7.1,<7.2'
     ]
 )

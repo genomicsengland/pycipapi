@@ -1,11 +1,19 @@
+import abc
+import datetime
 import logging
 import requests
-import datetime
-import json
-import abc
+
+try:
+    import urlparse
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+except:
+    from urllib import parse as urlparse
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+
 from requests.compat import urljoin
 from requests.exceptions import HTTPError
-import pycipapi.backoff_retrier as backoff_retrier
 
 
 class NotFound(HTTPError):
@@ -16,6 +24,41 @@ class NotFound(HTTPError):
 class BlockedCase(HTTPError):
 
     pass
+
+
+def requests_retry_session(retries=3, backoff_factor=0.3, status_forcelist=(500, 502, 504, 503), session=None):
+    session = session or requests.Session()
+    retry = Retry(
+        total=retries,
+        read=retries,
+        connect=retries,
+        backoff_factor=backoff_factor,
+        status_forcelist=status_forcelist,
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+    return session
+
+
+def func_wrapper_multi(func, klass, *args, **kwargs):
+    for item in func(*args, **kwargs):
+        yield klass(**item)
+
+
+def func_wrapper_single(func, klass, *args, **kwargs):
+    return klass(**func(*args, **kwargs))
+
+
+def returns_item(klass, multi=False):
+    def item_decorator(func):
+        def func_wrapper(*args, **kwargs):
+            if multi:
+                return func_wrapper_multi(func, klass, *args, **kwargs)
+            else:
+                return func_wrapper_single(func, klass, *args, **kwargs)
+        return func_wrapper
+    return item_decorator
 
 
 class RestClient(object):
@@ -29,14 +72,22 @@ class RestClient(object):
         }
         self.token = None
         self.renewed_token = False
-        # decorates the REST verbs with retries
-        self.get = backoff_retrier.wrapper(self.get, retries)
-        self.post = backoff_retrier.wrapper(self.post, retries)
-        self.delete = backoff_retrier.wrapper(self.delete, retries)
+        self._request_methods = {
+            'post': requests_retry_session(session=self.session).post,
+            'get': requests_retry_session(session=self.session).get,
+            'delete': requests_retry_session(session=self.session).delete,
+            'put': requests_retry_session(session=self.session).put,
+            'patch': requests_retry_session(session=self.session).patch,
+        }
 
     @staticmethod
-    def build_url(baseurl, endpoint):
-        return urljoin(baseurl, endpoint)
+    def build_url(baseurl, path, *args):
+        url = urljoin(baseurl, path)
+        if args:
+            url_args = '/'.join(map(str, args))
+            url.rstrip('/')
+            url = url + '/' + url_args
+        return url
 
     def set_authenticated_header(self, renew_token=False):
         if not self.token or renew_token:
@@ -47,76 +98,76 @@ class RestClient(object):
     def get_token(self):
         raise ValueError("Not implemented")
 
-    def post(self, endpoint, payload, url_params={}, session=True):
-        if endpoint is None or payload is None:
-            raise ValueError("Must define payload and endpoint before post")
-        url = self.build_url(self.url_base, endpoint)
+    @abc.abstractmethod
+    def get_paginated(self, url, **kwargs):
+        raise ValueError("Not implemented")
+
+    @staticmethod
+    def _clean_url(parameters, url):
+        query_params = urlparse.parse_qs(urlparse.urlparse(url).query)
+        url_as_list = list(urlparse.urlsplit(url))
+        # removing query params
+        url_as_list[3] = ''
+        url = urlparse.urlunsplit(url_as_list)
+        parameters.update(query_params)
+        return parameters, url
+
+    def _request_call(self, method, url, params, payload=None):
+        params = params if params else {}
+        if url is None:
+            raise ValueError("Must define endpoint before {method}".format(method=method))
         logging.debug("{date} {method} {url}".format(
             date=datetime.datetime.now(),
-            method="POST",
-            url="{}?{}".format(url, "&".join(["{}={}".format(k, v) for k, v in url_params.iteritems()]))
+            method=method.upper(),
+            url="{}?{}".format(url, "&".join(["{}={}".format(k, v) for k, v in params.items()]))
         ))
-        if session:
-            response = self.session.post(url, json=payload, params=url_params, headers=self.headers)
-        else:
-            response = requests.post(url, json=payload, params=url_params, headers=self.headers)
-        self._verify_response(response)
-        return json.loads(response.content) if response.content else None
+        request_method = self._request_methods.get(method)
+        if request_method is None:
+            raise NotImplementedError
+        if payload:
+            return request_method(url, json=payload, params=params, headers=self.headers)
+        return request_method(url, params=params, headers=self.headers)
 
-    def get(self, endpoint, url_params={}, session=True):
-        if endpoint is None:
-            raise ValueError("Must define endpoint before get")
-        url = self.build_url(self.url_base, endpoint)
-        logging.debug("{date} {method} {url}".format(
-            date=datetime.datetime.now(),
-            method="GET",
-            url="{}?{}".format(url, "&".join(["{}={}".format(k, v) for k, v in url_params.iteritems()]))
-        ))
-        if session:
-            response = self.session.get(url, params=url_params, headers=self.headers)
-        else:
-            response = requests.get(url, params=url_params, headers=self.headers)
-        self._verify_response(response)
-        return json.loads(response.content) if response.content else None
+    def post(self, url, payload, params=None):
+        response = self._request_call('post', url, params=params, payload=payload)
+        response = self._verify_response(response, 'post', url=url, params=params, payload=payload)
+        return response.json() if response.content else None
 
-    def delete(self, endpoint, url_params={}):
-        if endpoint is None:
-            raise ValueError("Must define endpoint before get")
-        url = self.build_url(self.url_base, endpoint)
-        logging.debug("{date} {method} {url}".format(
-            date=datetime.datetime.now(),
-            method="DELETE",
-            url="{}?{}".format(url, "&".join(["{}={}".format(k, v) for k, v in url_params.iteritems()]))
-        ))
-        response = self.session.delete(url, params=url_params, headers=self.headers)
-        self._verify_response(response)
-        return json.loads(response.content) if response.content else None
+    def put(self, url, payload, params=None):
+        response = self._request_call('put', url, params=params, payload=payload)
+        response = self._verify_response(response, 'put', url=url, params=params, payload=payload)
+        return response.json() if response.content else None
 
-    def _verify_response(self, response):
+    def patch(self, url, payload, params=None):
+        response = self._request_call('patch', url, params=params, payload=payload)
+        response = self._verify_response(response, 'patch', url=url, params=params, payload=payload)
+        return response.json() if response.content else None
+
+    def get(self, url, params=None):
+        response = self._request_call('get', url, params=params)
+        response = self._verify_response(response, 'get', url=url, params=params)
+        return response.json() if response.content else None
+
+    def delete(self, url, params=None):
+        response = self._request_call('delete', url, params=params)
+        response = self._verify_response(response, 'delete', url=url, params=params)
+        return response.json() if response.content else None
+
+    def _verify_response(self, response, method=None, **kwargs):
         logging.debug("{date} response status code {status}".format(
             date=datetime.datetime.now(),
             status=response.status_code)
         )
-        if response.status_code != 200:
+        if response.status_code not in (200, 203, 206, 201):
             logging.error(response.content)
             # first 403 renews the token, second 403 in a row fails
             if response.status_code == 403 and not self.renewed_token:
                 # renews the token if unauthorised
                 self.set_authenticated_header(renew_token=True)
                 self.renewed_token = True
-                # will trigger a retry and with the renewed token it may work
-                raise backoff_retrier.RenewedToken(response=response)
-            elif response.status_code == 404:
-                logging.warning("Not found resource")
-                raise NotFound(response.text)
-            elif response.status_code == 406:
-                logging.warning("Blocked case")
-                raise BlockedCase(response.text)
-            elif response.status_code == 503:
-                logging.warning("Service unavailable")
-                raise backoff_retrier.Retriable(response.text)
-            # ValueError will not
+                return self._request_call(method, **kwargs)
             raise HTTPError("{}:{}".format(response.status_code, response.text), response=response)
         else:
-            # once a 200 response token is not anymore just renewed, it can be renewed again if a 403 arrives
+            # once a 20X response token is not anymore just renewed, it can be renewed again if a 403 arrives
             self.renewed_token = False
+            return response
