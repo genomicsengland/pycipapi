@@ -73,11 +73,11 @@ class RestClient(object):
         self.token = None
         self.renewed_token = False
         self._request_methods = {
-            'post': requests_retry_session(session=self.session).post,
-            'get': requests_retry_session(session=self.session).get,
-            'delete': requests_retry_session(session=self.session).delete,
-            'put': requests_retry_session(session=self.session).put,
-            'patch': requests_retry_session(session=self.session).patch,
+            'post': requests_retry_session(session=self.session, retries=retries).post,
+            'get': requests_retry_session(session=self.session, retries=retries).get,
+            'delete': requests_retry_session(session=self.session, retries=retries).delete,
+            'put': requests_retry_session(session=self.session, retries=retries).put,
+            'patch': requests_retry_session(session=self.session, retries=retries).patch,
         }
 
     @staticmethod
