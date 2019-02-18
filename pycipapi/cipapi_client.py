@@ -84,6 +84,10 @@ class CipApiClient(RestClient):
         url = self.build_url(self.url_base, self.IR_ENDPOINT, case_id, case_version) + '/'
         return self.patch(url, payload=payload, params=params)
 
+    def patch_case_status_raw(self, case_id, case_version, payload, **params):
+        url = self.build_url(self.url_base, self.IR_ENDPOINT, case_id, case_version, 'request-status') + '/'
+        return self.patch(url, payload=payload, params=params)
+
     def submit_interpretation_request_raw(self, case_id, case_version, interpretation_request_dict, extra_fields,
                                           **params):
         payload = {"interpretation_request_data": {"json_request": interpretation_request_dict}}
