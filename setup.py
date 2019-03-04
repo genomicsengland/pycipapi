@@ -7,7 +7,7 @@ setup(
     scripts=[],
     url='',
     license='',
-    author='priesgo',
+    author='antonior,priesgo',
     author_email='pablo.ferreiro@genomicsengland.co.uk',
     description='',
     install_requires=[
