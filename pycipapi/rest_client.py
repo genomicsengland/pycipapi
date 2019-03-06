@@ -64,21 +64,30 @@ def returns_item(klass, multi=False):
 class RestClient(object):
 
     session = requests.Session()
+    retries = 5
+    _request_methods = {
+        'post': requests_retry_session(session=session, retries=retries).post,
+        'get': requests_retry_session(session=session, retries=retries).get,
+        'delete': requests_retry_session(session=session, retries=retries).delete,
+        'put': requests_retry_session(session=session, retries=retries).put,
+        'patch': requests_retry_session(session=session, retries=retries).patch,
+    }
 
-    def __init__(self, url_base, retries=5):
+    def __init__(self, url_base, retries=None):
         self.url_base = url_base
         self.headers = {
             'Accept': 'application/json'
         }
         self.token = None
         self.renewed_token = False
-        self._request_methods = {
-            'post': requests_retry_session(session=self.session, retries=retries).post,
-            'get': requests_retry_session(session=self.session, retries=retries).get,
-            'delete': requests_retry_session(session=self.session, retries=retries).delete,
-            'put': requests_retry_session(session=self.session, retries=retries).put,
-            'patch': requests_retry_session(session=self.session, retries=retries).patch,
-        }
+        if retries is not None:
+            self._request_methods = {
+                'post': requests_retry_session(session=self.session, retries=retries).post,
+                'get': requests_retry_session(session=self.session, retries=retries).get,
+                'delete': requests_retry_session(session=self.session, retries=retries).delete,
+                'put': requests_retry_session(session=self.session, retries=retries).put,
+                'patch': requests_retry_session(session=self.session, retries=retries).patch,
+            }
 
     @staticmethod
     def build_url(baseurl, path, *args):
