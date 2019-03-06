@@ -26,7 +26,7 @@ class BlockedCase(HTTPError):
     pass
 
 
-def requests_retry_session(retries=1000, backoff_factor=0.8, status_forcelist=(500, 502, 504, 503), session=None):
+def requests_retry_session(retries=5, backoff_factor=0.8, status_forcelist=(500, 502, 504, 503), session=None):
     session = session or requests.Session()
     retry = Retry(
         total=retries,
@@ -62,15 +62,13 @@ def returns_item(klass, multi=False):
 
 
 class RestClient(object):
-
     session = requests.Session()
-    retries = 5
     _request_methods = {
-        'post': requests_retry_session(session=session, retries=retries).post,
-        'get': requests_retry_session(session=session, retries=retries).get,
-        'delete': requests_retry_session(session=session, retries=retries).delete,
-        'put': requests_retry_session(session=session, retries=retries).put,
-        'patch': requests_retry_session(session=session, retries=retries).patch,
+        'post': requests_retry_session(session=session).post,
+        'get': requests_retry_session(session=session).get,
+        'delete': requests_retry_session(session=session).delete,
+        'put': requests_retry_session(session=session).put,
+        'patch': requests_retry_session(session=session).patch,
     }
 
     def __init__(self, url_base, retries=None):
