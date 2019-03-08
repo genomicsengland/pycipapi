@@ -1,4 +1,4 @@
-from pycipapi.models import CipApiOverview, CipApiCase
+from pycipapi.models import CipApiOverview, CipApiCase, ClinicalReport, Referral
 from pycipapi.rest_client import RestClient, returns_item
 
 
@@ -8,10 +8,13 @@ class CipApiClient(RestClient):
     AUTH_ENDPOINT = "{url_base}/get-token/".format(url_base=ENDPOINT_BASE)
     IR_ENDPOINT = "{url_base}/interpretation-request".format(url_base=ENDPOINT_BASE)
     EQ_ENDPOINT = "{url_base}/exit-questionnaire".format(url_base=ENDPOINT_BASE)
+    CR_ENDPOINT = "{url_base}/clinical-report".format(url_base=ENDPOINT_BASE)
     IG_ENDPOINT = "{url_base}/interpreted-genome".format(url_base=ENDPOINT_BASE)
+    REFERRAL_ENDPOINT = "{url_base}/referral".format(url_base=ENDPOINT_BASE)
+    FILE_ENDPOINT = "{url_base}/file".format(url_base=ENDPOINT_BASE)
     PAGE_SIZE_MAX = 500
 
-    def __init__(self, url_base, token=None, user=None, password=None, retries=5):
+    def __init__(self, url_base, token=None, user=None, password=None, retries=5, fixed_paramters=None):
         """
         If user and password are not provided there will be no token renewal
         :param url_base:
@@ -19,7 +22,7 @@ class CipApiClient(RestClient):
         :param user:
         :param password:
         """
-        RestClient.__init__(self, url_base=url_base, retries=retries)
+        RestClient.__init__(self, url_base=url_base, retries=retries, fixed_params=fixed_paramters)
         self.token = "JWT {}".format(token) if token is not None else None
         self.user = user
         self.password = password if password else ""
@@ -76,6 +79,16 @@ class CipApiClient(RestClient):
         url = self.build_url(self.url_base, self.IR_ENDPOINT) + '/'
         return self.post(url, payload=payload, params=params)
 
+    def create_referral_raw(self, payload, **params):
+        url = self.build_url(self.url_base, self.REFERRAL_ENDPOINT)
+        return self.post(url, payload=payload, params=params)
+
+    def file_upload_raw(self, file_path, user, partner_id, report_id, file_type, **params):
+        url = self.build_url(self.url_base, self.FILE_ENDPOINT, partner_id, report_id, file_type)
+        files = {'file': open(file_path, 'rb')}
+        data = {'user': user}
+        return self.post(url, payload=data, files=files, params=params)
+
     def change_priority_raw(self, case_id, case_version, priority, **params):
         url = self.build_url(self.url_base, self.IR_ENDPOINT, 'case-priority', case_id, case_version) + '/'
         return self.patch(url, {"case_priority": priority}, params=params)
@@ -97,6 +110,29 @@ class CipApiClient(RestClient):
     def submit_interpreted_genome_raw(self, payload, partner_id, analysis_type, report_id, **params):
         url = self.build_url(self.url_base, self.IG_ENDPOINT, partner_id, analysis_type, report_id)
         return self.post(url, payload=payload, params=params)
+
+    def submit_clinical_report_raw(self, payload, partner_id, analysis_type, report_id, **params):
+        url = self.build_url(self.url_base, self.CR_ENDPOINT, partner_id, analysis_type, report_id)
+        return self.post(url, payload, params=params)
+
+    def list_clinical_reports_raw(self, **params):
+        """
+
+        :rtype: collections.Iterable[dict]
+        """
+        url = self.build_url(self.url_base, self.CR_ENDPOINT)
+        for r in self.get_paginated(url, params=params):
+            yield r
+
+    def list_referral_raw(self, **params):
+        """
+
+        :rtype: collections.Iterable[dict]
+        """
+        url = self.build_url(self.url_base, self.REFERRAL_ENDPOINT)
+        for r in self.get_paginated(url, params=params):
+            yield r
+
 
     @returns_item(CipApiOverview, multi=True)
     def get_cases(self, **params):
@@ -144,3 +180,34 @@ class CipApiClient(RestClient):
     def submit_interpreted_genome(self, payload, partner_id, analysis_type, report_id, **params):
         return self.submit_interpreted_genome_raw(payload, partner_id, analysis_type, report_id, **params)
 
+    @returns_item(ClinicalReport, multi=True)
+    def list_clinical_reports(self, **params):
+        """
+
+        :rtype: collections.Iterable[ClinicalReport]
+        """
+        return self.list_clinical_reports_raw(**params)
+
+    @returns_item(ClinicalReport, multi=False)
+    def submit_clinical_report(self, payload, partner_id, analysis_type, report_id, **params):
+        """
+
+        :rtype: ClinicalReport
+        """
+        return self.submit_clinical_report_raw(payload, partner_id, analysis_type, report_id, **params)
+
+    @returns_item(Referral, multi=True)
+    def list_referral(self, **params):
+        """
+
+        :rtype: collections.Iterable[Referral]
+        """
+        return self.list_referral_raw(**params)
+
+    @returns_item(Referral, multi=False)
+    def create_referral(self, payload, **params):
+        """
+
+        :rtype: Referral
+        """
+        return self.create_referral_raw(payload, **params)

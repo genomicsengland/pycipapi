@@ -71,7 +71,8 @@ class RestClient(object):
         'patch': requests_retry_session(session=session).patch,
     }
 
-    def __init__(self, url_base, retries=None):
+    def __init__(self, url_base, retries=None, fixed_params=None):
+        self.fixed_params = fixed_params if fixed_params is not None else {}
         self.url_base = url_base
         self.headers = {
             'Accept': 'application/json'
@@ -119,25 +120,32 @@ class RestClient(object):
         parameters.update(query_params)
         return parameters, url
 
-    def _request_call(self, method, url, params, payload=None):
-        params = params if params else {}
+    def _request_call(self, method, url, params, payload=None, files=None):
+        parameters = self.fixed_params if self.fixed_params is not None else {}
+        if params is not None:
+            parameters.update(params)
+
         if url is None:
             raise ValueError("Must define endpoint before {method}".format(method=method))
         logging.debug("{date} {method} {url}".format(
             date=datetime.datetime.now(),
             method=method.upper(),
-            url="{}?{}".format(url, "&".join(["{}={}".format(k, v) for k, v in params.items()]))
+            url="{}?{}".format(url, "&".join(["{}={}".format(k, v) for k, v in parameters.items()]))
         ))
         request_method = self._request_methods.get(method)
         if request_method is None:
             raise NotImplementedError
-        if payload:
-            return request_method(url, json=payload, params=params, headers=self.headers)
-        return request_method(url, params=params, headers=self.headers)
+        if payload and files:
+            return request_method(url, json=payload, files=files, params=parameters, headers=self.headers)
+        elif files:
+            return request_method(url, json=payload, params=parameters, headers=self.headers)
+        elif payload:
+            return request_method(url, json=payload, params=parameters, headers=self.headers)
+        return request_method(url, params=parameters, headers=self.headers)
 
-    def post(self, url, payload, params=None):
-        response = self._request_call('post', url, params=params, payload=payload)
-        response = self._verify_response(response, 'post', url=url, params=params, payload=payload)
+    def post(self, url, payload, files=None, params=None):
+        response = self._request_call('post', url, params=params, files=files, payload=payload)
+        response = self._verify_response(response, 'post', url=url, params=params, files=files, payload=payload)
         return response.json() if response.content else None
 
     def put(self, url, payload, params=None):
