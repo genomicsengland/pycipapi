@@ -26,7 +26,6 @@ class InterpretedGenome(object):
         self.cva_variants_status = kwargs.get('cva_variants_status')
         self.cva_variants_transaction_id = kwargs.get('cva_variants_transaction_id')
 
-
     def __lt__(self, other):
         """
 
@@ -37,7 +36,70 @@ class InterpretedGenome(object):
         return False
 
 
+class ReferralTest(object):
+    def __init__(self, **kwargs):
+        self.referral_test_id = kwargs.get("referral_test_id")
+        self.clinical_indication_test_type_id = kwargs.get("clinical_indication_test_type_id")
+        self.clinical_indication_test_code = kwargs.get("clinical_indication_test_code")
+        self.clinical_indication_test_name = kwargs.get("clinical_indication_test_name")
+        self.test_technology_id = kwargs.get("test_technology_id")
+        self.testTechnologyDescription = kwargs.get("testTechnologyDescription")
+        self.ordering_date = kwargs.get("ordering_date")
+        self.interpretation_request = kwargs.get("interpretation_request")
+        self.create_at = kwargs.get("create_at")
+        self.last_modified = kwargs.get("last_modified")
+        self.interpreter_organisation_id = kwargs.get("interpreter_organisation_id")
+        self.interpreter_organisation_code = kwargs.get("interpreter_organisation_code")
+        self.interpreter_organisation_name = kwargs.get("interpreter_organisation_name")
+        self.interpreter_organisation_national_grouping_id = kwargs.get("interpreter_organisation_national_grouping_id")
+        self.interpreter_organisation_national_grouping_name = kwargs.get("interpreter_organisation_national_grouping_name")
+        self.interpretation_request_id = kwargs.get("interpretation_request_id")
+        self.interpretation_request_version = kwargs.get("interpretation_request_version")
+    
+    def get_interpretation_request_ids(self):
+        return self.interpretation_request_id, self.interpretation_request_version
 
+    def get_interpretation_request(self, cip_api_client, **params):
+        """
+
+        :type cip_api_client: CipApiClient
+        :rtype : CipApiCase
+        """
+        return cip_api_client.get_case(self.interpretation_request_id, self.interpretation_request_version, **params)
+
+
+class Referral(object):
+    def __init__(self, **kwargs):
+        self.referral_id = kwargs.get("referral_id")
+        self.referral_uid = kwargs.get("referral_uid")
+        self.ordering_date = kwargs.get("ordering_date")
+        self.analysis_scope = kwargs.get("analysis_scope")
+        self.referral_payload = kwargs.get("referral_payload")
+        self.cohort_id = kwargs.get("cohort_id")
+        self.group_id = kwargs.get("group_id")
+        self.proband = kwargs.get("proband")
+        self.sample_type = kwargs.get("sample_type")
+        self.assembly = kwargs.get("assembly")
+        self.last_modified = kwargs.get("last_modified")
+        self.create_at = kwargs.get("create_at")
+        self.requester_organisation_id = kwargs.get("requester_organisation_id")
+        self.requester_organisation_code = kwargs.get("requester_organisation_code")
+        self.requester_organisation_name = kwargs.get("requester_organisation_name")
+        self.requester_organisation_national_grouping_id = kwargs.get("requester_organisation_national_grouping_id")
+        self.requester_organisation_national_grouping_name = kwargs.get("requester_organisation_national_grouping_name")
+        self.referral_test = [rt for rt in self.process_referral_tests(kwargs.get('referral_test'))]
+        
+    def process_referral_tests(self, referral_test_data):
+        for referral_test in referral_test_data:
+            yield ReferralTest(**referral_test)
+
+    def get_interpretation_requests_ids(self):
+        for rt in self.referral_test:
+            yield rt.get_interpretation_request_ids()
+    
+    def get_interpretation_requests(self, cip_api_client, **params):
+        for rt in self.referral_test:
+            yield rt.get_interpretation_request(cip_api_client, **params)
 
 
 class ClinicalReport(object):
@@ -282,6 +344,15 @@ class CipApiCase(object):
         :type cip_api_client: CipApiClient
         """
         self.interpreted_genome.append(InterpretedGenome(**cip_api_client.submit_interpreted_genome_raw(
+            payload=payload, partner_id=partner_id, analysis_type=analysis_type, report_id=report_id, **params
+        )))
+
+    def submit_clinical_report(self, cip_api_client, payload, partner_id, analysis_type, report_id, **params):
+        """
+
+        :type cip_api_client: CipApiClient
+        """
+        self.clinical_report.append(ClinicalReport(**cip_api_client.submit_clinical_report_raw(
             payload=payload, partner_id=partner_id, analysis_type=analysis_type, report_id=report_id, **params
         )))
 
