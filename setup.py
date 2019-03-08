@@ -15,4 +15,3 @@ setup(
         'GelReportModels>=7.1,<7.2'
     ]
 )
-fixed_paramters=None
