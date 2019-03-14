@@ -164,6 +164,8 @@ class CipApiCase(object):
         self.cancer_participant_id = kwargs.get('cancer_participant')
         self.assembly = kwargs.get('assembly')
         self.case_id = kwargs.get('case_id')
+        self.number_of_samples = kwargs.get('number_of_samples')
+        self.proband = kwargs.get('proband')
 
         self.status = [RequestStatus(**s) for s in kwargs.get('status', [])]
         self.files = kwargs.get('files')
