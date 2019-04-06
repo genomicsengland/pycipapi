@@ -80,7 +80,7 @@ class CipApiClient(RestClient):
         return self.post(url, payload=payload, params=params)
 
     def create_referral_raw(self, payload, **params):
-        url = self.build_url(self.url_base, self.REFERRAL_ENDPOINT)
+        url = self.build_url(self.url_base, self.REFERRAL_ENDPOINT) + '/'
         return self.post(url, payload=payload, params=params)
 
     def file_upload_raw(self, file_path, user, partner_id, report_id, file_type, **params):
