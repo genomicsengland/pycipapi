@@ -1,4 +1,4 @@
-from protocols.protocol_7_0.reports import Assembly, Program
+from protocols.protocol_7_0.reports import Assembly, Program, Pedigree
 
 
 class PreviousData(Exception):
@@ -52,10 +52,11 @@ class ReferralTest(object):
         self.interpreter_organisation_code = kwargs.get("interpreter_organisation_code")
         self.interpreter_organisation_name = kwargs.get("interpreter_organisation_name")
         self.interpreter_organisation_national_grouping_id = kwargs.get("interpreter_organisation_national_grouping_id")
-        self.interpreter_organisation_national_grouping_name = kwargs.get("interpreter_organisation_national_grouping_name")
+        self.interpreter_organisation_national_grouping_name = kwargs.get(
+            "interpreter_organisation_national_grouping_name")
         self.interpretation_request_id = kwargs.get("interpretation_request_id")
         self.interpretation_request_version = kwargs.get("interpretation_request_version")
-    
+
     def get_interpretation_request_ids(self):
         return self.interpretation_request_id, self.interpretation_request_version
 
@@ -88,7 +89,7 @@ class Referral(object):
         self.requester_organisation_national_grouping_id = kwargs.get("requester_organisation_national_grouping_id")
         self.requester_organisation_national_grouping_name = kwargs.get("requester_organisation_national_grouping_name")
         self.referral_test = [rt for rt in self.process_referral_tests(kwargs.get('referral_test'))]
-        
+
     def process_referral_tests(self, referral_test_data):
         for referral_test in referral_test_data:
             yield ReferralTest(**referral_test)
@@ -96,7 +97,7 @@ class Referral(object):
     def get_interpretation_requests_ids(self):
         for rt in self.referral_test:
             yield rt.get_interpretation_request_ids()
-    
+
     def get_interpretation_requests(self, cip_api_client, **params):
         for rt in self.referral_test:
             yield rt.get_interpretation_request(cip_api_client, **params)
@@ -164,12 +165,10 @@ class CipApiCase(object):
         self.cancer_participant_id = kwargs.get('cancer_participant')
         self.assembly = kwargs.get('assembly')
         self.case_id = kwargs.get('case_id')
-        self.number_of_samples = kwargs.get('number_of_samples')
-        self.proband = kwargs.get('proband')
 
         self.status = [RequestStatus(**s) for s in kwargs.get('status', [])]
         self.files = kwargs.get('files')
-        self.interpretation_request_data = kwargs.get('interpretation_request_data')
+        self.interpretation_request_data = kwargs.get('interpretation_request_data').get('json_request')
         self.interpreted_genome = kwargs.get('interpreted_genome', [])
         self.clinical_report = kwargs.get('clinical_report')
         self.workspaces = kwargs.get('workspaces')
@@ -177,7 +176,7 @@ class CipApiCase(object):
     @property
     def pedigree(self):
         if self.interpretation_request_data and self.sample_type == 'raredisease':
-            return self.interpretation_request_data.pedigree
+            return Pedigree.fromJsonDict(self.interpretation_request_data.get('pedigree'))
         return None
 
     @property
@@ -188,7 +187,7 @@ class CipApiCase(object):
     @property
     def samples(self):
         if self.interpretation_request_data and self.sample_type == 'raredisease':
-            return [sample.SampleId for member in self.pedigree.members for sample in member.samples if member.samples]
+            return [sample.sampleId for member in self.pedigree.members for sample in member.samples if member.samples]
         elif self.interpretation_request_data and self.sample_type == 'cancer':
             samples = []
             for m in self.interpretation_request_data.cancerParticipant.matchedSamples:
@@ -269,6 +268,7 @@ class CipApiCase(object):
         """
         if self.last_status == 'report_sent':
             return True
+
     @property
     def is_rare_disease(self):
         """
@@ -435,6 +435,7 @@ class CasesByGroup(object):
             return True
         else:
             return False
+
     @property
     def last_version(self):
         if not self.is_group_registered:
