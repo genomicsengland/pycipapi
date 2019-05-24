@@ -388,6 +388,7 @@ class CipApiOverview(object):
         self.cva_variants_transaction_id = kwargs.get('cva_variants_transaction_id')
         self.case_id = kwargs.get('case_id')
         self.status = [RequestStatus(**s) for s in kwargs.get('status', [])]
+        self.referral = Referral(**kwargs.get('referral')) if kwargs.get('referral') else None
 
     def get_case(self, cip_api_client, **params):
         """
