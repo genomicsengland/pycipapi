@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='pycipapi',
-    version='0.5.5',
+    version='0.6.0',
     packages=find_packages(),
     scripts=[],
     url='',
@@ -12,6 +12,6 @@ setup(
     description='',
     install_requires=[
         'requests',
-        'GelReportModels>=7.1,<7.2'
+        'GelReportModels>=7.2'
     ]
 )
