@@ -1,3 +1,6 @@
+pycipapi is a python client to the Interpretation API (CIP-API) REST API. 
+pycipapi primary aim is to facilitate access to the REST API, allowing the users to manage and take actions on cases 
+in a easy way. 
 
 ## Initialise the client
 
@@ -16,33 +19,4 @@ Fetch a specific case as follows. Both cases for rare disease and cancer are sup
 ```
 # id = 1234; version = 1
 case = cipapi.get_case("1234", "1")
-```
-
-Alternatively iterate through all interpretation requests as follows.
-
-```
-for case in cipapi.get_cases():
-    # do whatever with the case
-```
-
-## Get the latest entities from a case
-
-Fetch the latest case entities. If there are multiple interpreted genomes for a given interpretation request it will return the latest.
-All entities are migrated to the latest version of the models (ie: reports 5.0.0 and participants 1.1.0)
-
-```
-ir = case.get_interpretation_request()
-if case.is_cancer():
-    self.assertTrue(CancerInterpretationRequest.validate(ir.toJsonDict()))
-elif case.is_rare_disease():
-    self.assertTrue(InterpretationRequestRD.validate(ir.toJsonDict()))
-    
-tig = case.get_tiering_interpreted_genome()
-for variant in tig.variants:
-    # do something with your variant...
-
-cr = case.get_clinical_report()
-ig = case.get_interpreted_genome()
-ped = case.get_pedigree()
-eq = case.get_exit_questionnaire()
 ```

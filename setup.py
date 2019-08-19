@@ -5,10 +5,10 @@ setup(
     version='0.7.0',
     packages=find_packages(),
     scripts=[],
-    url='',
+    url='https://github.com/genomicsengland/pycipapi',
     license='',
     author='antonior,priesgo',
-    author_email='pablo.ferreiro@genomicsengland.co.uk',
+    author_email='antonio.rueda-martin@genomicsengland.co.uk',
     description='',
     install_requires=[
         'requests',
