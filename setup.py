@@ -12,6 +12,6 @@ setup(
     description='',
     install_requires=[
         'requests',
-        'GelReportModels>=7.2'
+        'GelReportModels>=7.3'
     ]
 )
