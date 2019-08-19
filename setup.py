@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='pycipapi',
-    version='0.6.0',
+    version='0.7.0',
     packages=find_packages(),
     scripts=[],
     url='',
