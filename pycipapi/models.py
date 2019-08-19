@@ -1,4 +1,8 @@
-from protocols.protocol_7_0.reports import Assembly, Program
+import logging
+
+from protocols.protocol_7_0.reports import Assembly, Program, InterpretationRequestRD, CancerInterpretationRequest, \
+    InterpretedGenome as InterpretedGenomeGelModel
+from protocols.protocol_7_3.participant import Referral as ReferralGelModel
 
 
 class PreviousData(Exception):
@@ -34,6 +38,11 @@ class InterpretedGenome(object):
         if self.created_at < other.created_at:
             return True
         return False
+
+    @property
+    def interpretation_request_payload(self):
+        if self.interpreted_genome_data:
+            return InterpretedGenomeGelModel.fromJsonDict(self.interpreted_genome_data)
 
 
 class ReferralTest(object):
@@ -74,12 +83,7 @@ class Referral(object):
         self.referral_uid = kwargs.get("referral_uid")
         self.ordering_date = kwargs.get("ordering_date")
         self.analysis_scope = kwargs.get("analysis_scope")
-        self.referral_payload = kwargs.get("referral_payload")
-        self.cohort_id = kwargs.get("cohort_id")
-        self.group_id = kwargs.get("group_id")
-        self.proband = kwargs.get("proband")
-        self.sample_type = kwargs.get("sample_type")
-        self.assembly = kwargs.get("assembly")
+        self._referral_payload_json = kwargs.get("referral_data")
         self.last_modified = kwargs.get("last_modified")
         self.create_at = kwargs.get("create_at")
         self.requester_organisation_id = kwargs.get("requester_organisation_id")
@@ -88,7 +92,20 @@ class Referral(object):
         self.requester_organisation_national_grouping_id = kwargs.get("requester_organisation_national_grouping_id")
         self.requester_organisation_national_grouping_name = kwargs.get("requester_organisation_national_grouping_name")
         self.referral_test = [rt for rt in self.process_referral_tests(kwargs.get('referral_test'))]
-        
+
+    @property
+    def referral_data(self):
+        """
+
+        :rtype: ReferralGelModel
+        """
+        if not ReferralGelModel.validate(self._referral_payload_json):
+            logging.warning('The referral payload is not valid according to the version of GelModels you are using, '
+                            'it may raise errors during the serialisation')
+        referral_payload = ReferralGelModel.fromJsonDict(self._referral_payload_json)
+
+        return referral_payload
+
     def process_referral_tests(self, referral_test_data):
         for referral_test in referral_test_data:
             yield ReferralTest(**referral_test)
@@ -170,20 +187,27 @@ class CipApiCase(object):
         self.status = [RequestStatus(**s) for s in kwargs.get('status', [])]
         self.files = kwargs.get('files')
         self.interpretation_request_data = kwargs.get('interpretation_request_data')
-        self.interpreted_genome = kwargs.get('interpreted_genome', [])
+        self.interpreted_genome = [InterpretedGenome(**ig) for ig in kwargs.get('interpreted_genome', [])]
         self.clinical_report = kwargs.get('clinical_report')
         self.workspaces = kwargs.get('workspaces')
 
     @property
+    def interpretation_request_payload(self):
+        if self.interpretation_request_data and self.sample_type == 'raredisease':
+            return InterpretationRequestRD.fromJsonDict(self.interpretation_request_data['json_request'])
+        if self.interpretation_request_data and self.sample_type == 'cancer':
+            return CancerInterpretationRequest.fromJsonDict(self.interpretation_request_data['json_request'])
+
+    @property
     def pedigree(self):
         if self.interpretation_request_data and self.sample_type == 'raredisease':
-            return self.interpretation_request_data.pedigree
+            return self.interpretation_request_payload.pedigree
         return None
 
     @property
     def cancer_participant(self):
         if self.interpretation_request_data and self.sample_type == 'cancer':
-            return self.interpretation_request_data.cancerParticipant
+            return self.interpretation_request_payload.cancerParticipant
 
     @property
     def samples(self):
@@ -442,5 +466,3 @@ class CasesByGroup(object):
             return None
         else:
             return sorted(self.cases)[-1]
-
-

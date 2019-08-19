@@ -133,9 +133,16 @@ class CipApiClient(RestClient):
         for r in self.get_paginated(url, params=params):
             yield r
 
-
     @returns_item(CipApiOverview, multi=True)
     def get_cases(self, **params):
+        """
+
+        :rtype: collections.Iterable[CipApiOverview]
+        """
+        return self.get_cases_raw(**params)
+
+    @returns_item(CipApiOverview, multi=True)
+    def list_cases(self, **params):
         """
 
         :rtype: collections.Iterable[CipApiOverview]
