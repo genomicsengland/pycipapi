@@ -84,7 +84,7 @@ class CipApiClient(RestClient):
         return self.post(url, payload=payload, params=params)
 
     def file_upload_raw(self, file_path, user, partner_id, report_id, file_type, **params):
-        url = self.build_url(self.url_base, self.FILE_ENDPOINT, partner_id, report_id, file_type)
+        url = self.build_url(self.url_base, self.FILE_ENDPOINT, partner_id, report_id, file_type) + '/'
         files = {'file': open(file_path, 'rb')}
         data = {'user': user}
         return self.post(url, payload=data, files=files, params=params)
@@ -108,7 +108,7 @@ class CipApiClient(RestClient):
         return self.put(url, payload=None, params=params)
 
     def submit_interpreted_genome_raw(self, payload, partner_id, analysis_type, report_id, **params):
-        url = self.build_url(self.url_base, self.IG_ENDPOINT, partner_id, analysis_type, report_id)
+        url = self.build_url(self.url_base, self.IG_ENDPOINT, partner_id, analysis_type, report_id) + '/'
         return self.post(url, payload=payload, params=params)
 
     def submit_clinical_report_raw(self, payload, partner_id, analysis_type, report_id, **params):
