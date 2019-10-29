@@ -112,7 +112,7 @@ class CipApiClient(RestClient):
         return self.post(url, payload=payload, params=params)
 
     def submit_clinical_report_raw(self, payload, partner_id, analysis_type, report_id, **params):
-        url = self.build_url(self.url_base, self.CR_ENDPOINT, partner_id, analysis_type, report_id)
+        url = self.build_url(self.url_base, self.CR_ENDPOINT, partner_id, analysis_type, report_id) + '/'
         return self.post(url, payload, params=params)
 
     def list_clinical_reports_raw(self, **params):
