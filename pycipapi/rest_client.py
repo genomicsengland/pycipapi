@@ -2,12 +2,12 @@ import abc
 import datetime
 import logging
 import requests
+import sys
 
-try:
+if sys.version_info[0] < 3:
     import urlparse
     from requests.adapters import HTTPAdapter
-    from urllib3.util.retry import Retry
-except:
+else:
     from urllib import parse as urlparse
     from requests.adapters import HTTPAdapter
     from urllib3.util.retry import Retry
@@ -28,13 +28,16 @@ class BlockedCase(HTTPError):
 
 def requests_retry_session(retries=5, backoff_factor=0.8, status_forcelist=(500, 502, 504, 503), session=None):
     session = session or requests.Session()
-    retry = Retry(
-        total=retries,
-        read=retries,
-        connect=retries,
-        backoff_factor=backoff_factor,
-        status_forcelist=status_forcelist,
-    )
+    if sys.version_info[0] < 3:
+        retry = retries
+    else:
+        retry = Retry(
+            total=retries,
+            read=retries,
+            connect=retries,
+            backoff_factor=backoff_factor,
+            status_forcelist=status_forcelist,
+        )
     adapter = HTTPAdapter(max_retries=retry)
     session.mount('http://', adapter)
     session.mount('https://', adapter)
