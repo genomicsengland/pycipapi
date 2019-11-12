@@ -43,10 +43,10 @@ class CipApiClient(RestClient):
         next = True
         while next is not None:
             results = self.get(url=url, params=query_params)
-            next = results['next']
+            next = results.get('next')
             if next is not None:
                 query_params, url = self._clean_url(parameters=query_params, url=next)
-            for r in results['results']:
+            for r in results.get('results', []):
                 yield r
 
     def get_cases_raw(self, **params):
