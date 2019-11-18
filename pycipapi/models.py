@@ -123,7 +123,8 @@ class ClinicalReport(object):
     def __init__(self, **kwargs):
         self.clinical_report_data = kwargs.get('clinical_report_data')
         self.created_at = kwargs.get('created_at')
-        self.exit_questionnaire = kwargs.get('exit_questionnaire')
+        self.exit_questionnaire = ExitQuestionnaire(**kwargs.get('exit_questionnaire')) if\
+            kwargs.get('exit_questionnaire') else None
         self.clinical_report_version = kwargs.get('clinical_report_version')
         self.valid = kwargs.get('valid')
         self.cva_variants_status = kwargs.get('cva_variants_status')
@@ -188,7 +189,7 @@ class CipApiCase(object):
         self.files = kwargs.get('files')
         self.interpretation_request_data = kwargs.get('interpretation_request_data')
         self.interpreted_genome = [InterpretedGenome(**ig) for ig in kwargs.get('interpreted_genome', [])]
-        self.clinical_report = kwargs.get('clinical_report')
+        self.clinical_report = [ClinicalReport(**cr) for cr in kwargs.get('clinical_report', [])]
         self.workspaces = kwargs.get('workspaces')
 
     @property
@@ -381,6 +382,21 @@ class CipApiCase(object):
         self.clinical_report.append(ClinicalReport(**cip_api_client.submit_clinical_report_raw(
             payload=payload, partner_id=partner_id, analysis_type=analysis_type, report_id=report_id, **params
         )))
+
+    def get_exit_questionnaire(self):
+        if self.has_clinical_reports:
+            list_of_cr = self.clinical_report
+            list_of_cr.reverse()
+            for cr in list_of_cr:
+                if cr.exit_questionnaire:
+                    return cr.exit_questionnaire
+        return None
+
+    def get_exit_questionnaires(self):
+        if self.has_clinical_reports:
+            for cr in self.clinical_report:
+                if cr.exit_questionnaire:
+                    yield cr.exit_questionnaire
 
 
 class CipApiOverview(object):
