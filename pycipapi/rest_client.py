@@ -94,7 +94,7 @@ class RestClient(object):
         if args:
             url_args = '/'.join(map(str, args))
             url.rstrip('/')
-            url = url + '/' + url_args
+            url = url + '/' + url_args + '/'
         return url
 
     def set_authenticated_header(self, renew_token=False):
