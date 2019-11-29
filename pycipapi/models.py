@@ -64,7 +64,7 @@ class ReferralTest(object):
         self.interpreter_organisation_national_grouping_name = kwargs.get("interpreter_organisation_national_grouping_name")
         self.interpretation_request_id = kwargs.get("interpretation_request_id")
         self.interpretation_request_version = kwargs.get("interpretation_request_version")
-    
+
     def get_interpretation_request_ids(self):
         return self.interpretation_request_id, self.interpretation_request_version
 
@@ -113,7 +113,7 @@ class Referral(object):
     def get_interpretation_requests_ids(self):
         for rt in self.referral_test:
             yield rt.get_interpretation_request_ids()
-    
+
     def get_interpretation_requests(self, cip_api_client, **params):
         for rt in self.referral_test:
             yield rt.get_interpretation_request(cip_api_client, **params)
@@ -184,7 +184,7 @@ class CipApiCase(object):
         self.number_of_samples = kwargs.get('number_of_samples')
         self.proband = kwargs.get('proband')
         self.referral = Referral(**kwargs.get('referral')) if kwargs.get('referral') else None
-        self.status = [RequestStatus(**s) for s in kwargs.get('status', [])]
+        self.status = [RequestStatus(**s) if isinstance(s, dict) else s for s in kwargs.get('status', [])]
         self.files = kwargs.get('files')
         self.interpretation_request_data = kwargs.get('interpretation_request_data')
         self.interpreted_genome = [InterpretedGenome(**ig) for ig in kwargs.get('interpreted_genome', [])]
