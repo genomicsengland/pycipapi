@@ -1,4 +1,5 @@
 import logging
+from collections import Iterable
 
 from protocols.protocol_7_2.reports import Assembly, Program, InterpretationRequestRD, CancerInterpretationRequest, \
     InterpretedGenome as InterpretedGenomeGelModel
@@ -162,6 +163,8 @@ class CipApiCase(object):
         self._load_data(**kwargs)
 
     def _load_data(self, **kwargs):
+        if not isinstance(kwargs.get('status', []), Iterable):
+            kwargs['status'] = [kwargs.get('status', [])]
         self.last_status = kwargs.get('last_status')
         self.created_at = kwargs.get('created_at')
         self.last_modified = kwargs.get('last_modified')
