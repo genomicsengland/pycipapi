@@ -1,4 +1,4 @@
-from pycipapi.models import CipApiOverview, CipApiCase, ClinicalReport, Referral
+from pycipapi.models import CipApiOverview, CipApiCase, ClinicalReport, Referral, RequestStatus
 from pycipapi.rest_client import RestClient, returns_item
 
 
@@ -183,7 +183,7 @@ class CipApiClient(RestClient):
     def change_priority(self, case_id, case_version, priority, **params):
         return self.change_priority_raw(case_id, case_version, priority, **params)
 
-    @returns_item(CipApiCase, multi=False)
+    @returns_item(RequestStatus, multi=False)
     def submit_interpreted_genome(self, payload, partner_id, analysis_type, report_id, **params):
         return self.submit_interpreted_genome_raw(payload, partner_id, analysis_type, report_id, **params)
 
