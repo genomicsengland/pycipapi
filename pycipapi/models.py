@@ -213,7 +213,7 @@ class CipApiCase(object):
     @property
     def samples(self):
         if self.interpretation_request_data and self.sample_type == 'raredisease':
-            return [sample.SampleId for member in self.pedigree.members for sample in member.samples if member.samples]
+            return [sample.sampleId for member in self.pedigree.members for sample in member.samples if member.samples]
         elif self.interpretation_request_data and self.sample_type == 'cancer':
             samples = []
             for m in self.interpretation_request_data.cancerParticipant.matchedSamples:
