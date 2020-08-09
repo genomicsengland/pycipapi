@@ -153,6 +153,20 @@ class RequestStatus(object):
         return False
 
 
+class InterpretationFlag(object):
+    def __init__(self, **kwargs):
+        self.name = kwargs.get('flag').get('name')
+        self.description = kwargs.get('flag').get('description')
+
+    def __eq__(self, other):
+        if self.name == other.name:
+            return True
+        return False
+
+    def __hash__(self):
+        return hash(self.name)
+
+
 class CipApiCase(object):
     _map_sample_type2program = {
         'raredisease': Program.rare_disease,
@@ -185,6 +199,8 @@ class CipApiCase(object):
         self.number_of_samples = kwargs.get('number_of_samples')
         self.proband = kwargs.get('proband')
         self.referral = Referral(**kwargs.get('referral')) if kwargs.get('referral') else None
+        self.interpretation_flags = [InterpretationFlag(**flag) for flag in kwargs.get(
+            'interpretation_flag')] if kwargs.get('interpretation_flag') else []
         self.status = [RequestStatus(**s) for s in kwargs.get('status', [])]
         self.files = kwargs.get('files')
         self.interpretation_request_data = kwargs.get('interpretation_request_data')
@@ -373,6 +389,17 @@ class CipApiCase(object):
         self.interpreted_genome.append(InterpretedGenome(**cip_api_client.submit_interpreted_genome_raw(
             payload=payload, partner_id=partner_id, analysis_type=analysis_type, report_id=report_id, **params
         )))
+
+    def submit_interpretation_flags(self, cip_api_client, payload, **params):
+        """
+
+        :type cip_api_client: CipApiClient
+        """
+        flags = [flag for flag in cip_api_client.submit_interpretation_flags(
+            payload, self.interpretation_request_id, self.version, **params)]
+        set_of_flags = set(self.interpretation_flags)
+        set_of_flags.update(set(flags))
+        self.interpretation_flags = list(set_of_flags)
 
     def submit_clinical_report(self, cip_api_client, payload, partner_id, analysis_type, report_id, **params):
         """

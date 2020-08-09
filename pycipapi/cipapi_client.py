@@ -1,4 +1,4 @@
-from pycipapi.models import CipApiOverview, CipApiCase, ClinicalReport, Referral, RequestStatus
+from pycipapi.models import CipApiOverview, CipApiCase, ClinicalReport, Referral, RequestStatus, InterpretationFlag
 from pycipapi.rest_client import RestClient, returns_item
 
 
@@ -115,6 +115,15 @@ class CipApiClient(RestClient):
         url = self.build_url(self.url_base, self.CR_ENDPOINT, partner_id, analysis_type, report_id) + '/'
         return self.post(url, payload, params=params)
 
+    def submit_interpretation_flags_raw(self, payload, case_id, case_version, **params):
+        url = self.build_url(self.url_base, self.IR_ENDPOINT, case_id, case_version, 'interpretation-flags') + '/'
+        return self.post(url, payload, params=params)
+
+    def get_interpretation_flags_raw(self, case_id, case_version, **params):
+        url = self.build_url(self.url_base, self.IR_ENDPOINT, case_id, case_version, 'interpretation-flags') + '/'
+        for r in self.get_paginated(url, params=params):
+            yield r
+
     def list_clinical_reports_raw(self, **params):
         """
 
@@ -132,6 +141,24 @@ class CipApiClient(RestClient):
         url = self.build_url(self.url_base, self.REFERRAL_ENDPOINT)
         for r in self.get_paginated(url, params=params):
             yield r
+
+    def submit_interpretation_flags(self, payload, case_id, case_version, **params):
+        """
+
+        :rtype: collections.Iterable[InterpretationFlag]
+        """
+        flags = self.submit_interpretation_flags_raw(payload, case_id, case_version, **params)
+        for flag in flags:
+            yield InterpretationFlag(**flag)
+
+    @returns_item(InterpretationFlag, multi=True)
+    def get_interpretation_flags(self, payload, case_id, case_version, **params):
+        """
+
+        :rtype: collections.Iterable[InterpretationFlag]
+        """
+        return self.get_interpretation_flags_raw(case_id, case_version, **params)
+
 
     @returns_item(CipApiOverview, multi=True)
     def get_cases(self, **params):

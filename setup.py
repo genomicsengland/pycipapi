@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='pycipapi',
-    version='0.9.1',
+    version='0.9.2',
     packages=find_packages(),
     scripts=[],
     url='https://github.com/genomicsengland/pycipapi',
