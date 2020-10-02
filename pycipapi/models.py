@@ -212,14 +212,14 @@ class CipApiCase(object):
     @property
     def members(self):
         if self.interpretation_request_data and self.sample_type == 'raredisease':
-            return [participant.participantId for participant in self.pedigree.members if participant.samples]
+            return [participant.participantId for participant in self.pedigree.members if participant.samples and participant.participantId]
         elif self.interpretation_request_data and self.sample_type == 'cancer':
             return self.proband
 
     @property
     def all_members(self):
         if self.interpretation_request_data and self.sample_type == 'raredisease':
-            return [participant.participantId for participant in self.pedigree.members]
+            return [participant.participantId for participant in self.pedigree.members if participant.participantId]
         elif self.interpretation_request_data and self.sample_type == 'cancer':
             return self.proband
 
