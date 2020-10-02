@@ -171,7 +171,6 @@ class CipApiCase(object):
         self.cohort_id = kwargs.get('cohort_id')
         self.sample_type = kwargs.get('sample_type')
         self.interpretation_request_id = kwargs.get('interpretation_request_id')
-        self.case_members = kwargs.get('case_members')
         self.version = kwargs.get('version')
         self.gel_tiering_qc_outcome = kwargs.get('gel_tiering_qc_outcome')
         self.labkey_links = kwargs.get('labkey_links')
@@ -209,6 +208,20 @@ class CipApiCase(object):
     def cancer_participant(self):
         if self.interpretation_request_data and self.sample_type == 'cancer':
             return self.interpretation_request_payload.cancerParticipant
+
+    @property
+    def members(self):
+        if self.interpretation_request_data and self.sample_type == 'raredisease':
+            return [participant.participantId for participant in self.pedigree.members if participant.samples]
+        elif self.interpretation_request_data and self.sample_type == 'cancer':
+            return self.proband
+
+    @property
+    def all_members(self):
+        if self.interpretation_request_data and self.sample_type == 'raredisease':
+            return [participant.participantId for participant in self.pedigree.members]
+        elif self.interpretation_request_data and self.sample_type == 'cancer':
+            return self.proband
 
     @property
     def samples(self):
