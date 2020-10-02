@@ -185,7 +185,6 @@ class CipApiCase(object):
         self.cohort_id = kwargs.get('cohort_id')
         self.sample_type = kwargs.get('sample_type')
         self.interpretation_request_id = kwargs.get('interpretation_request_id')
-        self.case_members = kwargs.get('case_members')
         self.version = kwargs.get('version')
         self.gel_tiering_qc_outcome = kwargs.get('gel_tiering_qc_outcome')
         self.labkey_links = kwargs.get('labkey_links')
@@ -227,9 +226,23 @@ class CipApiCase(object):
             return self.interpretation_request_payload.cancerParticipant
 
     @property
+    def members(self):
+        if self.interpretation_request_data and self.sample_type == 'raredisease':
+            return [participant.participantId for participant in self.pedigree.members if participant.samples and participant.participantId]
+        elif self.interpretation_request_data and self.sample_type == 'cancer':
+            return self.proband
+
+    @property
+    def all_members(self):
+        if self.interpretation_request_data and self.sample_type == 'raredisease':
+            return [participant.participantId for participant in self.pedigree.members if participant.participantId]
+        elif self.interpretation_request_data and self.sample_type == 'cancer':
+            return self.proband
+
+    @property
     def samples(self):
         if self.interpretation_request_data and self.sample_type == 'raredisease':
-            return [sample.SampleId for member in self.pedigree.members for sample in member.samples if member.samples]
+            return [sample.sampleId for member in self.pedigree.members for sample in member.samples if member.samples]
         elif self.interpretation_request_data and self.sample_type == 'cancer':
             samples = []
             for m in self.interpretation_request_data.cancerParticipant.matchedSamples:
