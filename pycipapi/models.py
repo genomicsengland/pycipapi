@@ -1,8 +1,8 @@
 import logging
 
-from protocols.protocol_7_2.reports import Assembly, Program, InterpretationRequestRD, CancerInterpretationRequest, \
+from protocols.protocol_7_2_1.reports import Assembly, Program, InterpretationRequestRD, CancerInterpretationRequest, \
     InterpretedGenome as InterpretedGenomeGelModel
-from protocols.protocol_7_3.participant import Referral as ReferralGelModel
+from protocols.protocol_7_7.participant import Referral as ReferralGelModel
 
 
 class PreviousData(Exception):
