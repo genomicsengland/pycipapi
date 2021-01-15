@@ -175,8 +175,8 @@ class RestClient(object):
         )
         if response.status_code not in (200, 203, 206, 201):
             logging.error(response.content)
-            # first 403 renews the token, second 403 in a row fails
-            if response.status_code == 403 and not self.renewed_token:
+            # first 401/403 renews the token, second 401/403 in a row fails
+            if response.status_code in (401, 403) and not self.renewed_token:
                 # renews the token if unauthorised
                 self.set_authenticated_header(renew_token=True)
                 self.renewed_token = True
