@@ -156,6 +156,38 @@ class CipApiClient(RestClient):
         url = self.build_url(self.url_base, self.AF_ENDPOINT, participant_id, 'consent')
         return self.get(url, params=params)
 
+    def post_participant_consent_raw(self, payload, participant_id, **params):
+        url = self.build_url(self.url_base, self.AF_ENDPOINT, participant_id, 'consent') + '/'
+        return self.post(url, payload, params=params)
+
+    def put_participant_consent_raw(self, payload, participant_id, **params):
+        url = self.build_url(self.url_base, self.AF_ENDPOINT, participant_id, 'consent') + '/'
+        return self.put(url, payload, params=params)
+
+    @returns_item(ParticipantConsent)
+    def get_participant_consent(self, participant_id, **params):
+        """
+        :type participant_id: str
+        :rtype: ParticipantConsent
+        """
+        return self.get_participant_consent_raw(participant_id, **params)
+
+    @returns_item(ParticipantConsent)
+    def post_participant_consent(self, payload, participant_id, **params):
+        """
+        :type participant_id: str
+        :rtype: ParticipantConsent
+        """
+        return self.post_participant_consent_raw(payload, participant_id, **params)
+
+    @returns_item(ParticipantConsent)
+    def put_participant_consent(self, payload, participant_id, **params):
+        """
+        :type participant_id: str
+        :rtype: ParticipantConsent
+        """
+        return self.put_participant_consent_raw(payload, participant_id, **params)
+
     @returns_item(InterpretationFlag, multi=True)
     def get_interpretation_flags(self, payload, case_id, case_version, **params):
         """
@@ -163,15 +195,6 @@ class CipApiClient(RestClient):
         :rtype: collections.Iterable[InterpretationFlag]
         """
         return self.get_interpretation_flags_raw(case_id, case_version, **params)
-
-    @returns_item(ParticipantConsent)
-    def get_participant_consent(self, participant_id, **params):
-        """
-
-        :rtype: ParticipantConsent
-        """
-        return self.get_participant_consent_raw(participant_id, **params)
-
 
     @returns_item(CipApiOverview, multi=True)
     def get_cases(self, **params):
