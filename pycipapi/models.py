@@ -64,7 +64,7 @@ class ReferralTest(object):
         self.interpreter_organisation_national_grouping_name = kwargs.get("interpreter_organisation_national_grouping_name")
         self.interpretation_request_id = kwargs.get("interpretation_request_id")
         self.interpretation_request_version = kwargs.get("interpretation_request_version")
-    
+
     def get_interpretation_request_ids(self):
         return self.interpretation_request_id, self.interpretation_request_version
 
@@ -113,7 +113,7 @@ class Referral(object):
     def get_interpretation_requests_ids(self):
         for rt in self.referral_test:
             yield rt.get_interpretation_request_ids()
-    
+
     def get_interpretation_requests(self, cip_api_client, **params):
         for rt in self.referral_test:
             yield rt.get_interpretation_request(cip_api_client, **params)
@@ -139,6 +139,17 @@ class ExitQuestionnaire(object):
         self.user = kwargs.get('user')
         self.cva_status = kwargs.get('cva_status')
         self.cva_transaction_id = kwargs.get('cva_transaction_id')
+
+
+class ParticipantConsent(object):
+    def __init__(self, **kwargs):
+        self.created_at = kwargs.get('created_at')
+        self.updated_at = kwargs.get('updated_at')
+        self.primary_finding_consent = kwargs.get('primary_finding_consent')
+        self.carrier_status_consent = kwargs.get('carrier_status_consent')
+        self.programme_consent = kwargs.get('programme_consent')
+        self.secondary_finding_consent = kwargs.get('secondary_finding_consent')
+        self.child_consent_form = kwargs.get('child_consent_form')
 
 
 class RequestStatus(object):
