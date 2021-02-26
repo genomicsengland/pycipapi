@@ -12,7 +12,7 @@ class CipApiClient(RestClient):
     IG_ENDPOINT = "{url_base}/interpreted-genome".format(url_base=ENDPOINT_BASE)
     REFERRAL_ENDPOINT = "{url_base}/referral".format(url_base=ENDPOINT_BASE)
     FILE_ENDPOINT = "{url_base}/file".format(url_base=ENDPOINT_BASE)
-    AF_ENDPOINT = "{url_base}/participants".format(url_base=ENDPOINT_BASE)
+    PARTICIPANTS_ENDPOINT = "{url_base}/participants".format(url_base=ENDPOINT_BASE)
     PAGE_SIZE_MAX = 500
 
     def __init__(self, url_base, token=None, user=None, password=None, retries=5, fixed_paramters=None):
@@ -153,15 +153,15 @@ class CipApiClient(RestClient):
             yield InterpretationFlag(**flag)
 
     def get_participant_consent_raw(self, participant_id, **params):
-        url = self.build_url(self.url_base, self.AF_ENDPOINT, participant_id, 'consent')
+        url = self.build_url(self.url_base, self.PARTICIPANTS_ENDPOINT, participant_id, 'consent')
         return self.get(url, params=params)
 
     def post_participant_consent_raw(self, payload, participant_id, **params):
-        url = self.build_url(self.url_base, self.AF_ENDPOINT, participant_id, 'consent') + '/'
+        url = self.build_url(self.url_base, self.PARTICIPANTS_ENDPOINT, participant_id, 'consent') + '/'
         return self.post(url, payload, params=params)
 
     def put_participant_consent_raw(self, payload, participant_id, **params):
-        url = self.build_url(self.url_base, self.AF_ENDPOINT, participant_id, 'consent') + '/'
+        url = self.build_url(self.url_base, self.PARTICIPANTS_ENDPOINT, participant_id, 'consent') + '/'
         return self.put(url, payload, params=params)
 
     @returns_item(ParticipantConsent)
