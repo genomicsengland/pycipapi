@@ -140,6 +140,12 @@ class ExitQuestionnaire(object):
         self.cva_status = kwargs.get('cva_status')
         self.cva_transaction_id = kwargs.get('cva_transaction_id')
 
+class ParticipantExitQuestionnaire(object):
+    def __init__(self, **kwargs):
+        self.created_at = kwargs.get('created_at')
+        self.exit_questionnaire_data = kwargs.get('exit_questionnaire_data')
+        self.user = kwargs.get('user')
+        self.draft = kwargs.get('draft')
 
 class ParticipantConsent(object):
     def __init__(self, **kwargs):
@@ -167,7 +173,7 @@ class ParticipantClinicalReport(object):
         self.clinical_report_data = kwargs.get('clinical_report_data')
         self.created_at = kwargs.get('created_at')
         self.draft = kwargs.get('draft')
-        self.exit_questionnaire = ExitQuestionnaire(**kwargs.get('exit_questionnaire')) if\
+        self.exit_questionnaire = ParticipantExitQuestionnaire(**kwargs.get('exit_questionnaire')) if\
             kwargs.get('exit_questionnaire') else None
         self.timestamp = kwargs.get('timestamp')
 
