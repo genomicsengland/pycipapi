@@ -152,6 +152,26 @@ class ParticipantConsent(object):
         self.child_consent_form = kwargs.get('child_consent_form')
 
 
+class ParticipantInterpretedGenome(object):
+    def __init__(self, **kwargs):
+        self.created_at = kwargs.get('created_at')
+        self.version = kwargs.get('version')
+        self.interpreted_genome_data = kwargs.get('interpreted_genome_data')
+        self.interpretation_service_name = kwargs.get('interpretation_service_name')
+        self.result_summary = kwargs.get('result_summary')
+
+
+class ParticipantClinicalReport(object):
+    def __init__(self, **kwargs):
+        self.clinical_report_version = kwargs.get('clinical_report_version')
+        self.clinical_report_data = kwargs.get('clinical_report_data')
+        self.created_at = kwargs.get('created_at')
+        self.draft = kwargs.get('draft')
+        self.exit_questionnaire = ExitQuestionnaire(**kwargs.get('exit_questionnaire')) if\
+            kwargs.get('exit_questionnaire') else None
+        self.timestamp = kwargs.get('timestamp')
+
+
 class RequestStatus(object):
     def __init__(self, **kwargs):
         self.created_at = kwargs.get('created_at')

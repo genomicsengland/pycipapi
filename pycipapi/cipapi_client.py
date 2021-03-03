@@ -1,4 +1,14 @@
-from pycipapi.models import CipApiOverview, CipApiCase, ClinicalReport, Referral, RequestStatus, InterpretationFlag, ParticipantConsent
+from pycipapi.models import (
+    CipApiOverview,
+    CipApiCase,
+    ClinicalReport,
+    Referral,
+    RequestStatus,
+    InterpretationFlag,
+    ParticipantConsent,
+    ParticipantInterpretedGenome,
+    ParticipantClinicalReport,
+)
 from pycipapi.rest_client import RestClient, returns_item
 
 
@@ -152,6 +162,18 @@ class CipApiClient(RestClient):
         for flag in flags:
             yield InterpretationFlag(**flag)
 
+    def post_participant_interpreted_genome_raw(self, payload, participant_id, **params):
+        url = self.build_url(self.url_base, self.PARTICIPANTS_ENDPOINT, participant_id, 'interpreted-genome') + '/'
+        payload_json =  {
+                          "interpreted_genome_data": payload,
+                          "interpretation_service_name": "genomics_england_additional_findings"
+                        }
+        return self.post(url, payload_json, params=params)
+
+    def post_participant_clinical_report_raw(self, payload, participant_id, interpretation_service_name, **params):
+        url = self.build_url(self.url_base, self.PARTICIPANTS_ENDPOINT, participant_id, 'summary-of-findings','interpretation-service', interpretation_service_name) + '/'
+        return self.post(url, payload, params=params)
+
     def get_participant_consent_raw(self, participant_id, **params):
         url = self.build_url(self.url_base, self.PARTICIPANTS_ENDPOINT, participant_id, 'consent')
         return self.get(url, params=params)
@@ -172,6 +194,14 @@ class CipApiClient(RestClient):
         """
         return self.get_participant_consent_raw(participant_id, **params)
 
+    @returns_item(ParticipantClinicalReport)
+    def post_participant_clinical_report(self, payload, participant_id,interpretation_service_name, **params):
+        """
+        :type participant_id: str
+        :rtype: ParticipantClinicalReport
+        """
+        return self.post_participant_clinical_report_raw(payload, participant_id, interpretation_service_name, **params)
+
     @returns_item(ParticipantConsent)
     def post_participant_consent(self, payload, participant_id, **params):
         """
@@ -187,6 +217,14 @@ class CipApiClient(RestClient):
         :rtype: ParticipantConsent
         """
         return self.put_participant_consent_raw(payload, participant_id, **params)
+
+    @returns_item(ParticipantInterpretedGenome)
+    def post_participant_interpreted_genome(self, payload, participant_id, **params):
+        """
+        :type participant_id: str
+        :rtype: ParticipantInterpretedGenome
+        """
+        return self.post_participant_interpreted_genome_raw(payload, participant_id, **params)
 
     @returns_item(InterpretationFlag, multi=True)
     def get_interpretation_flags(self, payload, case_id, case_version, **params):
