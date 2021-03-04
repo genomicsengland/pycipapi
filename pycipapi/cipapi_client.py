@@ -186,6 +186,14 @@ class CipApiClient(RestClient):
         url = self.build_url(self.url_base, self.PARTICIPANTS_ENDPOINT, participant_id, 'consent') + '/'
         return self.put(url, payload, params=params)
 
+    def get_participant_interpreted_genome_raw(self, participant_id, interpretation_service_name, version, **params):
+        url = self.build_url(self.url_base, self.PARTICIPANTS_ENDPOINT, participant_id, 'interpreted-genome', interpretation_service_name, version) + '/'
+        return self.get(url, params=params)
+
+    def get_participant_clinical_report_raw(self, participant_id, version, **params):
+        url = self.build_url(self.url_base, self.PARTICIPANTS_ENDPOINT, participant_id, 'summary-of-findings', version) + '/'
+        return self.get(url, params=params)
+
     @returns_item(ParticipantConsent)
     def get_participant_consent(self, participant_id, **params):
         """
@@ -193,6 +201,14 @@ class CipApiClient(RestClient):
         :rtype: ParticipantConsent
         """
         return self.get_participant_consent_raw(participant_id, **params)
+
+    @returns_item(ParticipantClinicalReport)
+    def get_participant_clinical_report(self, participant_id, version, **params):
+        """
+        :type participant_id: str
+        :rtype: ParticipantClinicalReport
+        """
+        return self.get_participant_clinical_report_raw(participant_id, version, **params)
 
     @returns_item(ParticipantClinicalReport)
     def post_participant_clinical_report(self, payload, participant_id,interpretation_service_name, **params):
@@ -225,6 +241,14 @@ class CipApiClient(RestClient):
         :rtype: ParticipantInterpretedGenome
         """
         return self.post_participant_interpreted_genome_raw(payload, participant_id, **params)
+
+    @returns_item(ParticipantInterpretedGenome)
+    def get_participant_interpreted_genome(self, participant_id, interpretation_service_name, version, **params):
+        """
+        :type participant_id: str
+        :rtype: ParticipantInterpretedGenome
+        """
+        return self.get_participant_interpreted_genome_raw(participant_id, interpretation_service_name, version, **params)
 
     @returns_item(InterpretationFlag, multi=True)
     def get_interpretation_flags(self, payload, case_id, case_version, **params):
