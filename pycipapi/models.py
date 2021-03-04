@@ -140,6 +140,12 @@ class ExitQuestionnaire(object):
         self.cva_status = kwargs.get('cva_status')
         self.cva_transaction_id = kwargs.get('cva_transaction_id')
 
+class ParticipantExitQuestionnaire(object):
+    def __init__(self, **kwargs):
+        self.created_at = kwargs.get('created_at')
+        self.exit_questionnaire_data = kwargs.get('exit_questionnaire_data')
+        self.user = kwargs.get('user')
+        self.draft = kwargs.get('draft')
 
 class ParticipantConsent(object):
     def __init__(self, **kwargs):
@@ -150,6 +156,26 @@ class ParticipantConsent(object):
         self.programme_consent = kwargs.get('programme_consent')
         self.secondary_finding_consent = kwargs.get('secondary_finding_consent')
         self.child_consent_form = kwargs.get('child_consent_form')
+
+
+class ParticipantInterpretedGenome(object):
+    def __init__(self, **kwargs):
+        self.created_at = kwargs.get('created_at')
+        self.version = kwargs.get('version')
+        self.interpreted_genome_data = kwargs.get('interpreted_genome_data')
+        self.interpretation_service_name = kwargs.get('interpretation_service_name')
+        self.result_summary = kwargs.get('result_summary')
+
+
+class ParticipantClinicalReport(object):
+    def __init__(self, **kwargs):
+        self.clinical_report_version = kwargs.get('clinical_report_version')
+        self.clinical_report_data = kwargs.get('clinical_report_data')
+        self.created_at = kwargs.get('created_at')
+        self.draft = kwargs.get('draft')
+        self.exit_questionnaire = ParticipantExitQuestionnaire(**kwargs.get('exit_questionnaire')) if\
+            kwargs.get('exit_questionnaire') else None
+        self.timestamp = kwargs.get('timestamp')
 
 
 class RequestStatus(object):
