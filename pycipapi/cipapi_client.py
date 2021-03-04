@@ -162,11 +162,11 @@ class CipApiClient(RestClient):
         for flag in flags:
             yield InterpretationFlag(**flag)
 
-    def post_participant_interpreted_genome_raw(self, payload, participant_id, **params):
+    def post_participant_interpreted_genome_raw(self, payload, participant_id, interpretation_service_name = 'genomics_england_additional_findings', **params):
         url = self.build_url(self.url_base, self.PARTICIPANTS_ENDPOINT, participant_id, 'interpreted-genome') + '/'
         payload_json =  {
                           "interpreted_genome_data": payload,
-                          "interpretation_service_name": "genomics_england_additional_findings"
+                          "interpretation_service_name": interpretation_service_name
                         }
         return self.post(url, payload_json, params=params)
 
@@ -194,12 +194,12 @@ class CipApiClient(RestClient):
         url = self.build_url(self.url_base, self.PARTICIPANTS_ENDPOINT, participant_id, 'summary-of-findings', version) + '/'
         return self.get(url, params=params)
 
-    def list_participant_interpreted_genome_raw(self, participant_id, **params):
+    def list_participant_interpreted_genomes_raw(self, participant_id, **params):
         url = self.build_url(self.url_base, self.PARTICIPANTS_ENDPOINT, participant_id, 'interpreted-genome') + '/'
         for r in self.get_paginated(url, params=params):
             yield r
 
-    def list_participant_clinical_report_raw(self, participant_id, **params):
+    def list_participant_clinical_reports_raw(self, participant_id, **params):
         url = self.build_url(self.url_base, self.PARTICIPANTS_ENDPOINT, participant_id, 'summary-of-findings') + '/'
         for r in self.get_paginated(url, params=params):
             yield r
@@ -229,12 +229,12 @@ class CipApiClient(RestClient):
         return self.post_participant_clinical_report_raw(payload, participant_id, interpretation_service_name, **params)
 
     @returns_item(ParticipantClinicalReport, multi=True)
-    def list_participant_clinical_report(self, participant_id, **params):
+    def list_participant_clinical_reports(self, participant_id, **params):
         """
 
         :rtype: collections.Iterable[ParticipantClinicalReport]
         """
-        return self.list_participant_clinical_report_raw(participant_id, **params)
+        return self.list_participant_clinical_reports_raw(participant_id, **params)
 
     @returns_item(ParticipantConsent)
     def post_participant_consent(self, payload, participant_id, **params):
@@ -269,12 +269,12 @@ class CipApiClient(RestClient):
         return self.get_participant_interpreted_genome_raw(participant_id, interpretation_service_name, version, **params)
 
     @returns_item(ParticipantInterpretedGenome, multi=True)
-    def list_participant_interpreted_genome(self, participant_id, **params):
+    def list_participant_interpreted_genomes(self, participant_id, **params):
         """
 
         :rtype: collections.Iterable[ParticipantInterpretedGenome]
         """
-        return self.list_participant_interpreted_genome_raw(participant_id, **params)
+        return self.list_participant_interpreted_genomes_raw(participant_id, **params)
 
     @returns_item(InterpretationFlag, multi=True)
     def get_interpretation_flags(self, payload, case_id, case_version, **params):
