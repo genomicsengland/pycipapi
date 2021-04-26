@@ -132,6 +132,12 @@ class ClinicalReport(object):
         self.timestamp = kwargs.get('timestamp')
 
 
+class VariantInterpretationLog(object):
+    def __init__(self, **kwargs):
+        self.case_updated = kwargs.get('case_updated')
+        self.log_entry = kwargs.get('log_entry').get('log_entry')
+
+
 class ExitQuestionnaire(object):
     def __init__(self, **kwargs):
         self.created_at = kwargs.get('created_at')
