@@ -506,6 +506,8 @@ class CipApiOverview(object):
         self.case_id = kwargs.get('case_id')
         self.status = [RequestStatus(**s) for s in kwargs.get('status', [])]
         self.referral = Referral(**kwargs.get('referral')) if kwargs.get('referral') else None
+        self.interpretation_flags = kwargs.get('interpretation_flags')
+
 
     def get_case(self, cip_api_client, **params):
         """
