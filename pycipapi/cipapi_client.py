@@ -2,6 +2,7 @@ from pycipapi.models import (
     CipApiOverview,
     CipApiCase,
     ClinicalReport,
+    VariantInterpretationLog,
     Referral,
     RequestStatus,
     InterpretationFlag,
@@ -124,6 +125,14 @@ class CipApiClient(RestClient):
 
     def submit_clinical_report_raw(self, payload, partner_id, analysis_type, report_id, **params):
         url = self.build_url(self.url_base, self.CR_ENDPOINT, partner_id, analysis_type, report_id) + '/'
+        return self.post(url, payload, params=params)
+
+    def submit_variant_interpretation_logs_raw(self, payload, case_id, case_version, **params):
+        case_id_version = "{ir_id}-{ir_version}".format(
+            ir_id=case_id,
+            ir_version=case_version
+        )
+        url = self.build_url(self.url_base, self.IR_ENDPOINT, case_id_version, 'variant-interpretation-log') + '/'
         return self.post(url, payload, params=params)
 
     def submit_interpretation_flags_raw(self, payload, case_id, case_version, **params):
@@ -353,6 +362,17 @@ class CipApiClient(RestClient):
         :rtype: ClinicalReport
         """
         return self.submit_clinical_report_raw(payload, partner_id, analysis_type, report_id, **params)
+
+    @returns_item(VariantInterpretationLog, multi=False)
+    def submit_variant_interpretation_logs(self, vils, case_id, case_version, **params):
+        """
+        :type vils: list
+        :type case_id: int
+        :type case_version: int
+        :rtype: VariantInterpretationLog
+        """
+        payload = {"log_entry": vils}
+        return self.submit_variant_interpretation_logs_raw(payload, case_id, case_version, **params)
 
     @returns_item(Referral, multi=True)
     def list_referral(self, **params):
