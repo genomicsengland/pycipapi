@@ -6,6 +6,7 @@ from pycipapi.models import (
     Referral,
     RequestStatus,
     InterpretationFlag,
+    Participant,
     ParticipantConsent,
     ParticipantInterpretedGenome,
     ParticipantClinicalReport,
@@ -180,7 +181,7 @@ class CipApiClient(RestClient):
         return self.post(url, payload_json, params=params)
 
     def post_participant_clinical_report_raw(self, payload, participant_id, interpretation_service_name, **params):
-        url = self.build_url(self.url_base, self.PARTICIPANTS_ENDPOINT, participant_id, 'summary-of-findings','interpretation-service', interpretation_service_name) + '/'
+        url = self.build_url(self.url_base, self.PARTICIPANTS_ENDPOINT, participant_id, 'summary-of-findings', 'interpretation-service', interpretation_service_name) + '/'
         return self.post(url, payload, params=params)
 
     def get_participant_consent_raw(self, participant_id, **params):
@@ -202,6 +203,11 @@ class CipApiClient(RestClient):
     def get_participant_clinical_report_raw(self, participant_id, version, **params):
         url = self.build_url(self.url_base, self.PARTICIPANTS_ENDPOINT, participant_id, 'summary-of-findings', version) + '/'
         return self.get(url, params=params)
+
+    def list_participants_raw(self, **params):
+        url = self.build_url(self.url_base, self.PARTICIPANTS_ENDPOINT) + '/'
+        for r in self.get_paginated(url, **params):
+            yield r
 
     def list_participant_interpreted_genomes_raw(self, participant_id, **params):
         url = self.build_url(self.url_base, self.PARTICIPANTS_ENDPOINT, participant_id, 'interpreted-genome') + '/'
@@ -346,6 +352,16 @@ class CipApiClient(RestClient):
     @returns_item(RequestStatus, multi=False)
     def submit_interpreted_genome(self, payload, partner_id, analysis_type, report_id, **params):
         return self.submit_interpreted_genome_raw(payload, partner_id, analysis_type, report_id, **params)
+
+    @returns_item(Participant, multi=True)
+    def list_participants(self, **params):
+        """
+        This method lists all the participants registered in cipapi, filtered by given params.
+
+        :param params:
+        :return: Participant
+        """
+        return self.list_participants_raw(**params)
 
     @returns_item(ClinicalReport, multi=True)
     def list_clinical_reports(self, **params):
