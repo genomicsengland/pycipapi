@@ -146,12 +146,38 @@ class ExitQuestionnaire(object):
         self.cva_status = kwargs.get('cva_status')
         self.cva_transaction_id = kwargs.get('cva_transaction_id')
 
+
+class Participant:
+    def __init__(self, **kwargs):
+        self.participant_id = kwargs.get('participant_id')
+        self.participant_uid = kwargs.get('participant_uid')
+        self.family_id = kwargs.get('family_id')
+        self.sample_ids = kwargs.get('sample_ids')
+        self.interpretation_request = kwargs.get('interpretation_request')
+        self.category = kwargs.get('category')
+        self.participant_interpreted_genome = [ParticipantInterpretedGenome(**ig) for ig in kwargs.get('participant_interpreted_genome', [])]
+        self.participant_clinical_report = kwargs.get("participant_clinical_report")
+        self.primary_findings_analysis = kwargs.get("primary_findings_analysis")
+        self.additional_findings_analysis = kwargs.get("additional_findings_analysis")
+        self.year_of_birth = kwargs.get("year_of_birth")
+        self.assembly = kwargs.get("assembly")
+        self.sex = kwargs.get("sex")
+        self.clinical_indication = kwargs.get("clinical_indication")
+        self.created_at = kwargs.get("created_at")
+        self.updated_at = kwargs.get("updated_at")
+        self.participant_consent = ParticipantConsent(**kwargs.get("participant_consent")) if kwargs.get("participant_consent") else None
+        self.sites = kwargs.get("sites")
+        self.sample_type = kwargs.get("sample_type")
+        self.additional_findings_status = kwargs.get("additional_findings_status")
+
+
 class ParticipantExitQuestionnaire(object):
     def __init__(self, **kwargs):
         self.created_at = kwargs.get('created_at')
         self.exit_questionnaire_data = kwargs.get('exit_questionnaire_data')
         self.user = kwargs.get('user')
         self.draft = kwargs.get('draft')
+
 
 class ParticipantConsent(object):
     def __init__(self, **kwargs):
@@ -513,7 +539,6 @@ class CipApiOverview(object):
         self.status = [RequestStatus(**s) for s in kwargs.get('status', [])]
         self.referral = Referral(**kwargs.get('referral')) if kwargs.get('referral') else None
         self.interpretation_flags = kwargs.get('interpretation_flags')
-
 
     def get_case(self, cip_api_client, **params):
         """
