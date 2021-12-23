@@ -114,7 +114,7 @@ class CipApiClient(RestClient):
                                           **params):
         payload = {"interpretation_request_data": {"json_request": interpretation_request_dict}}
         payload.update(extra_fields)
-        return self.patch_case_raw(case_id, case_version, payload, params=params)
+        return self.patch_case_raw(case_id, case_version, payload, **params)
 
     def dispatch_raw(self, case_id, case_version, **params):
         url = self.build_url(self.url_base, self.IR_ENDPOINT, 'dispatch', case_id, case_version) + '/'
