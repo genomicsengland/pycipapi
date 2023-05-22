@@ -11,7 +11,7 @@ setup(
     author_email='antonio.rueda-martin@genomicsengland.co.uk',
     description='',
     install_requires=[
-        'requests==2.22',
+        'requests==2.31.0',
         'GelReportModels==7.7.1'
     ]
 )
